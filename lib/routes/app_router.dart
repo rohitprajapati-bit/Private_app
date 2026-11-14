@@ -11,6 +11,7 @@ import '../presentation/gallery/photo_viewer_screen.dart';
 import '../presentation/onboarding/setup_screen.dart';
 import '../presentation/settings/game_settings_screen.dart';
 import '../presentation/settings/vault_settings_screen.dart';
+import '../presentation/sharing/sharing_screen.dart';
 import '../presentation/vault/vault_home_screen.dart';
 import '../presentation/video_player/video_player_screen.dart';
 
@@ -22,6 +23,7 @@ abstract final class Routes {
   static const unlock = '/unlock';
   static const vault = '/vault';
   static const vaultSettings = '/vault/settings';
+  static const sharing = '/vault/sharing';
 
   static String play(int level) => '/play?level=$level';
   static String album(String id) => '/vault/album/$id';
@@ -86,6 +88,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         routes: [
           ..._mediaRoutes(),
           GoRoute(path: 'settings', builder: (context, state) => const VaultSettingsScreen()),
+          GoRoute(path: 'sharing', builder: (context, state) => const SharingScreen()),
           GoRoute(
             path: 'album/:albumId',
             builder: (context, state) => AlbumScreen(albumId: state.pathParameters['albumId']!),

@@ -7,6 +7,7 @@ import '../../injection.dart';
 import '../../routes/app_router.dart';
 import '../albums/albums_tab.dart';
 import '../gallery/media_grid.dart';
+import '../sharing/shared_tab.dart';
 import 'media_actions.dart';
 
 class VaultHomeScreen extends ConsumerStatefulWidget {
@@ -18,6 +19,13 @@ class VaultHomeScreen extends ConsumerStatefulWidget {
 
 class _VaultHomeScreenState extends ConsumerState<VaultHomeScreen> {
   int _tab = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Admin role: keep serving paired viewers while the vault is open.
+    ref.read(sharingHostProvider).startIfPaired().catchError((_) {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,10 +59,13 @@ class _VaultHomeScreenState extends ConsumerState<VaultHomeScreen> {
               MediaGrid(type: MediaType.photo, basePath: Routes.vault),
               MediaGrid(type: MediaType.video, basePath: Routes.vault),
               AlbumsTab(),
+              SharedTab(),
             ],
           ),
         ),
-        floatingActionButton: _tab == 2
+        floatingActionButton: _tab == 3
+            ? null
+            : _tab == 2
             ? FloatingActionButton.extended(
                 onPressed: () => AlbumsTab.create(context, ref),
                 icon: const Icon(Icons.create_new_folder_rounded),
@@ -72,6 +83,7 @@ class _VaultHomeScreenState extends ConsumerState<VaultHomeScreen> {
             NavigationDestination(icon: Icon(Icons.photo_library_rounded), label: 'Photos'),
             NavigationDestination(icon: Icon(Icons.video_library_rounded), label: 'Videos'),
             NavigationDestination(icon: Icon(Icons.folder_rounded), label: 'Albums'),
+            NavigationDestination(icon: Icon(Icons.people_alt_rounded), label: 'Shared'),
           ],
         ),
       ),

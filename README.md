@@ -12,7 +12,11 @@ Fully offline: no backend, Firebase, analytics or ads. Built for private install
 5. **Locking:** the vault locks when the app goes to the background, after an idle timeout (configurable), or when you tap the lock icon.
 
 > ⚠️ **There is no password recovery.** Uninstalling the app erases the vault, and there are no backups by design.
-> Importing *copies* media into the vault, so the originals stay in your Photos app until you delete them there.
+
+**Removing originals from the gallery:** after an import, the app deletes the originals of the items that were successfully encrypted. Your phone always asks you to confirm ("Allow Color Match to delete N items?"), and no app can skip that.
+- **iOS:** the first time, allow **Full Access** to Photos. With limited access iOS won't let the app delete. Deleted items go to **Recently Deleted** for 30 days, so empty that album yourself to finish hiding them.
+- **Android 11+:** the import uses the system Files picker, because the newer Android photo picker only gives the app read-only copies. On Android 10 and older, delete the originals manually.
+- You can turn this off in vault settings → **Remove originals from gallery**.
 
 ## Security design
 
@@ -31,7 +35,7 @@ per-file key ──chunked AES-256-GCM──► media/{id}.bin, thumbs/{id}.bin
 | Media at rest | Each file is split into 1 MiB chunks. Each chunk has its own nonce (random 8-byte prefix + chunk counter). The authenticated data covers the header, file id, chunk index and a final-chunk flag, so tampering, truncation, reordering and swapping files between records are all detected (see `test/core/chunked_cipher_test.dart`). |
 | Large videos | Videos are never decrypted to disk or fully into RAM. A loopback HTTP server (127.0.0.1, random port, 256-bit URL token) decrypts only the chunks the player requests via HTTP Range. It stops, and its keys are wiped, when the vault locks. |
 | Photos | Decrypted in memory only. HEIC on iOS is converted to JPEG in memory for display. |
-| Import transactions | Each file: pending row → encrypt to `tmp/*.part` and flush to disk → rename into place → commit. On the next unlock, unfinished `.part` files, pending rows and orphaned files are removed. The picker's plaintext copy is deleted whether the import succeeds or fails. |
+| Import transactions | Each file: pending row → encrypt to `tmp/*.part` and flush to disk → rename into place → commit. On the next unlock, unfinished `.part` files, pending rows and orphaned files are removed. The picker's plaintext copy is deleted whether the import succeeds or fails. A gallery original is deleted only after its item has been committed to the vault. |
 | Metadata | SQLite. File and album names are AES-GCM encrypted, and per-file keys are wrapped. `PRAGMA secure_delete` overwrites deleted rows. Deleting a row destroys that file's key, so the file can't be decrypted even if flash storage keeps the old blocks. |
 | On lock | The master key buffer is zeroed, caches and the image cache are cleared, the stream server is stopped, and temporary export files are deleted. |
 | App switcher | Android: `FLAG_SECURE` while the vault is open (blank preview, no screenshots). iOS: a cover view hides the snapshot. iOS cannot block screenshots. |
@@ -59,7 +63,7 @@ android/app/src/main/kotlin/…/  BiometricKeyStore.kt, MediaThumbnailer.kt, Pla
 ios/Runner/PlatformChannel.swift  Keychain biometrics, thumbnails, privacy cover, backup exclusion
 ```
 
-Stack: Flutter, Riverpod 3, GoRouter, Freezed, `cryptography` (with native AES-GCM through `cryptography_flutter`), sqflite, flutter_secure_storage, image_picker (system photo picker; no gallery permission needed), video_player, gal.
+Stack: Flutter, Riverpod 3, GoRouter, Freezed, `cryptography` (with native AES-GCM through `cryptography_flutter`), sqflite, flutter_secure_storage, a native picker (PHPicker on iOS, the document picker on Android) that also reports gallery IDs so originals can be removed, video_player, gal.
 
 ## Development
 
@@ -109,6 +113,7 @@ Real hardware is needed for biometrics, the photo picker, export and memory beha
 - [ ] Password: wrong ×5 → 30 s lockout (survives an app restart); correct → vault
 - [ ] Biometrics: Face ID / fingerprint unlock; cancel → password; enroll a new finger → biometrics turn off and the password is required
 - [ ] Import 20+ photos (including HEIC/Live Photos on iPhone) and a large video (≥1 GB); check memory stays flat
+- [ ] After import: the system delete prompt appears → Allow → the originals are gone from the gallery (iOS: in Recently Deleted). Deny → the originals are kept and the vault copies stay
 - [ ] Kill the app mid-import → reopen → no broken items; storage is cleaned up
 - [ ] Video: play, pause, seek near the end, full screen, rotate
 - [ ] Albums: create, rename, delete (items are kept), move items, view by album

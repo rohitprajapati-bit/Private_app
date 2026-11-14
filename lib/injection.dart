@@ -12,6 +12,9 @@ import 'data/datasources/vault_database.dart';
 import 'data/repositories/auth_repository_impl.dart';
 import 'data/repositories/game_repository_impl.dart';
 import 'data/repositories/media_repository_impl.dart';
+import 'data/sharing/sharing_client.dart';
+import 'data/sharing/sharing_host.dart';
+import 'data/sharing/sharing_protocol.dart';
 import 'domain/repositories/auth_repository.dart';
 import 'domain/repositories/game_repository.dart';
 import 'domain/repositories/media_repository.dart';
@@ -33,7 +36,6 @@ final authRepositoryProvider = Provider<AuthRepository>(
     store: ref.watch(secureStoreProvider),
     keys: ref.watch(keyHierarchyProvider),
     session: ref.watch(sessionProvider),
-    platform: ref.watch(platformServicesProvider),
   ),
 );
 
@@ -54,6 +56,38 @@ final mediaRepositoryProvider = Provider<MediaRepository>(
     server: MediaStreamServer(ref.watch(chunkedCipherProvider)),
   ),
 );
+
+final pairingStoreProvider = Provider(
+  (ref) => PairingStore(ref.watch(secureStoreProvider), ref.watch(sessionProvider), ref.watch(aeadProvider)),
+);
+
+/// Admin role: shares this vault, view-only, with paired devices on the local network.
+final sharingHostProvider = Provider((ref) {
+  final host = SharingHost(
+    database: ref.watch(vaultDatabaseProvider),
+    keys: ref.watch(keyHierarchyProvider),
+    paths: ref.watch(vaultPathsProvider),
+    session: ref.watch(sessionProvider),
+    pairings: ref.watch(pairingStoreProvider),
+    aead: ref.watch(aeadProvider),
+  );
+  ref.onDispose(host.dispose);
+  return host;
+});
+
+/// Viewer role: receives an admin device's items.
+final sharingClientProvider = Provider((ref) {
+  final client = SharingClient(
+    database: ref.watch(vaultDatabaseProvider),
+    keys: ref.watch(keyHierarchyProvider),
+    paths: ref.watch(vaultPathsProvider),
+    session: ref.watch(sessionProvider),
+    pairings: ref.watch(pairingStoreProvider),
+    aead: ref.watch(aeadProvider),
+  );
+  ref.onDispose(client.dispose);
+  return client;
+});
 
 final gameRepositoryProvider = Provider<GameRepository>(
   (ref) => GameRepositoryImpl(ref.watch(sharedPreferencesProvider)),

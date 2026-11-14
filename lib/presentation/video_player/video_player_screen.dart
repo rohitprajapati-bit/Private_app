@@ -127,7 +127,7 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                 backgroundColor: Colors.black,
                 title: Text(item?.name ?? '', overflow: TextOverflow.ellipsis),
                 actions: [
-                  if (item != null) ...[
+                  if (item != null && !item.isShared) ...[
                     IconButton(
                       tooltip: 'Save to gallery',
                       icon: const Icon(Icons.download_rounded),

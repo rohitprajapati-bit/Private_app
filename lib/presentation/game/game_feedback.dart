@@ -9,8 +9,17 @@ enum GameSound { tap, match, wrong, level, gameOver }
 class GameFeedback {
   GameFeedback() {
     // Mix with the user's music instead of stopping it, and honour the silent switch on iOS.
+    // The generic AudioContextConfig rejects that combination on iOS, but the `ambient`
+    // category provides exactly that behaviour.
     AudioPlayer.global.setAudioContext(
-      AudioContextConfig(focus: AudioContextConfigFocus.mixWithOthers, respectSilence: true).build(),
+      AudioContext(
+        iOS: AudioContextIOS(category: AVAudioSessionCategory.ambient),
+        android: const AudioContextAndroid(
+          contentType: AndroidContentType.sonification,
+          usageType: AndroidUsageType.game,
+          audioFocus: AndroidAudioFocus.none,
+        ),
+      ),
     );
   }
 

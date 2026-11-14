@@ -1,17 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/errors/failures.dart';
 import '../../core/theme/app_theme.dart';
 import '../../domain/usecases/password_policy.dart';
 import '../../injection.dart';
-import '../../platform/platform_services.dart';
 import '../common/password_field.dart';
 import '../common/sequence_recorder.dart';
 
-enum _Step { intro, password, sequence, creating, biometrics }
+enum _Step { intro, password, sequence, creating }
 
-/// First launch: password, hidden-entry sequence, optional biometrics.
+/// First launch: password and hidden-entry sequence.
 class SetupScreen extends ConsumerStatefulWidget {
   const SetupScreen({super.key});
 
@@ -25,12 +23,12 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
   final _password = TextEditingController();
   final _confirm = TextEditingController();
   String? _error;
-  BiometricStatus _biometrics = BiometricStatus.none;
 
   @override
   void initState() {
     super.initState();
-    _password.addListener(() => setState(() {}));
+    _password.addListener(() => setState(() => _error = null));
+    _confirm.addListener(() => setState(() => _error = null));
   }
 
   @override
@@ -55,31 +53,13 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       await auth.setup(password: _password.text, secretSequence: sequence);
       _password.clear();
       _confirm.clear();
-      final status = await auth.biometricStatus();
-      if (!mounted) return;
-      if (status.available) {
-        setState(() {
-          _biometrics = status;
-          _step = _Step.biometrics;
-        });
-      } else {
-        _finish();
-      }
+      if (mounted) _finish();
     } on Object {
       if (!mounted) return;
       setState(() {
         _error = 'Setup failed. Please try again.';
         _step = _Step.password;
       });
-    }
-  }
-
-  Future<void> _enableBiometrics() async {
-    try {
-      await ref.read(authRepositoryProvider).setBiometricEnabled(true);
-      _finish();
-    } on VaultFailure catch (e) {
-      setState(() => _error = e.message);
     }
   }
 
@@ -125,23 +105,6 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       title: 'Securing…',
       body: 'Generating keys. This takes a few seconds.',
       child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()),
-    ),
-    _Step.biometrics => _Card(
-      key: const ValueKey('biometrics'),
-      icon: Icons.fingerprint_rounded,
-      title: 'Use ${_biometrics.label}?',
-      body: 'Unlock with ${_biometrics.label} instead of typing your password. Your password always works too.',
-      child: Column(
-        children: [
-          if (_error != null) Text(_error!, style: const TextStyle(color: AppColors.danger)),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(onPressed: _enableBiometrics, child: Text('Enable ${_biometrics.label}')),
-          ),
-          TextButton(onPressed: _finish, child: const Text('Not now')),
-        ],
-      ),
     ),
   };
 
@@ -192,15 +155,43 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
           textInputAction: TextInputAction.done,
           onSubmitted: (_) => _submitPassword(),
         ),
+        if (_confirm.text.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          _PasswordMatchHint(matches: _confirm.text == _password.text),
+        ],
         if (_error != null) ...[
           const SizedBox(height: 12),
           Text(_error!, style: const TextStyle(color: AppColors.danger)),
         ],
         const SizedBox(height: 16),
-        SizedBox(width: double.infinity, child: FilledButton(onPressed: _submitPassword, child: const Text('Next'))),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: validateNewPassword(_password.text, _confirm.text) == null ? _submitPassword : null,
+            child: const Text('Next'),
+          ),
+        ),
       ],
     ),
   );
+}
+
+class _PasswordMatchHint extends StatelessWidget {
+  const _PasswordMatchHint({required this.matches});
+
+  final bool matches;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = matches ? AppColors.success : AppColors.danger;
+    return Row(
+      children: [
+        Icon(matches ? Icons.check_circle_rounded : Icons.cancel_rounded, size: 16, color: color),
+        const SizedBox(width: 6),
+        Text(matches ? 'Passwords match' : 'Passwords do not match', style: TextStyle(color: color, fontSize: 12)),
+      ],
+    );
+  }
 }
 
 class _Card extends StatelessWidget {

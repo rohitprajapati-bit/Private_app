@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:private_app/core/encryption/aead.dart';
@@ -12,7 +10,6 @@ import 'package:private_app/core/security/vault_session.dart';
 import 'package:private_app/core/storage/secure_store.dart';
 import 'package:private_app/core/utilities/bytes.dart';
 import 'package:private_app/data/repositories/auth_repository_impl.dart';
-import 'package:private_app/platform/platform_services.dart';
 
 // Cheap parameters keep tests fast; production uses KdfParams.standard.
 const _testKdf = KdfParams(memoryKiB: 256, iterations: 1, parallelism: 1);
@@ -111,7 +108,6 @@ void main() {
         store: SecureStore(),
         keys: KeyHierarchy(Aead(), kdfParams: _testKdf),
         session: session,
-        platform: _NoBiometrics(),
         clock: () => now,
       );
     });
@@ -162,15 +158,4 @@ void main() {
     expect(key.every((b) => b == 0), isTrue);
     expect(() => session.masterKey, throwsA(isA<VaultLocked>()));
   });
-}
-
-class _NoBiometrics extends MethodChannelPlatformServices {
-  @override
-  String biometricLabel(String? kind) => 'Biometrics';
-
-  @override
-  Future<BiometricStatus> biometricStatus() async => BiometricStatus.none;
-
-  @override
-  Future<Uint8List?> transcodeForDisplay(Uint8List bytes) async => null;
 }

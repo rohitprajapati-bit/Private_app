@@ -10,12 +10,13 @@ class VaultDatabase {
 
   Future<Database> get _database async => _db ??= await openDatabase(
     _path,
-    version: 1,
+    version: 2,
     onConfigure: (db) async {
       await db.execute('PRAGMA foreign_keys = ON');
       // Overwrite deleted rows (wrapped file keys, encrypted names) instead of leaving them
-      // in free pages.
-      await db.execute('PRAGMA secure_delete = ON');
+      // in free pages. This pragma returns a row, so it must go through rawQuery: iOS sqflite
+      // fails `execute` for statements that return results.
+      await db.rawQuery('PRAGMA secure_delete = ON');
     },
     onCreate: (db, _) async {
       await db.execute('''
@@ -37,9 +38,14 @@ class VaultDatabase {
           album_id TEXT REFERENCES albums(id) ON DELETE SET NULL,
           duration_ms INTEGER,
           width INTEGER,
-          height INTEGER
+          height INTEGER,
+          shared_from TEXT
         )''');
       await db.execute('CREATE INDEX media_album ON media(album_id)');
+    },
+    onUpgrade: (db, from, _) async {
+      // v2: items received from a paired admin device carry that device's id.
+      if (from < 2) await db.execute('ALTER TABLE media ADD COLUMN shared_from TEXT');
     },
   );
 
@@ -57,6 +63,23 @@ class VaultDatabase {
   Future<List<String>> pendingIds() async {
     final rows = await (await _database).query('media', columns: ['id'], where: 'committed = 0');
     return rows.map((r) => r['id']! as String).toList();
+  }
+
+  /// The owner's own items (what an admin device shares).
+  Future<List<MediaRecord>> ownCommittedMedia() async {
+    final rows = await (await _database).query('media', where: 'committed = 1 AND shared_from IS NULL');
+    return rows.map(MediaRecord.fromRow).toList();
+  }
+
+  /// Ids of items received from [deviceId], or from any device when null.
+  Future<Set<String>> sharedIds([String? deviceId]) async {
+    final rows = await (await _database).query(
+      'media',
+      columns: ['id'],
+      where: deviceId == null ? 'shared_from IS NOT NULL' : 'shared_from = ?',
+      whereArgs: deviceId == null ? null : [deviceId],
+    );
+    return rows.map((r) => r['id']! as String).toSet();
   }
 
   Future<Set<String>> allMediaIds() async {

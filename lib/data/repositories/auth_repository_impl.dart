@@ -7,25 +7,21 @@ import '../../core/security/vault_session.dart';
 import '../../core/storage/secure_store.dart';
 import '../../core/utilities/bytes.dart';
 import '../../domain/repositories/auth_repository.dart';
-import '../../platform/platform_services.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({
     required SecureStore store,
     required KeyHierarchy keys,
     required VaultSession session,
-    required PlatformServices platform,
     DateTime Function()? clock,
   }) : _store = store,
        _keys = keys,
        _session = session,
-       _platform = platform,
        _clock = clock ?? DateTime.now;
 
   final SecureStore _store;
   final KeyHierarchy _keys;
   final VaultSession _session;
-  final PlatformServices _platform;
   final DateTime Function() _clock;
 
   @override
@@ -34,7 +30,7 @@ class AuthRepositoryImpl implements AuthRepository {
     await _store.writeKeyMaterial(material.encode());
     await _store.writeSequence(SecretSequence.create(secretSequence).encode());
     await _store.clearFailures();
-    // The caller finishes onboarding (optional biometrics) and then marks the session configured.
+    // The caller finishes onboarding and then marks the session configured.
     _session.unlock(masterKey);
   }
 
@@ -59,49 +55,16 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<void> unlockWithBiometric() async {
-    if (!await _store.readBiometricEnabled()) throw const BiometricFailure(BiometricError.notEnabled);
-    try {
-      final masterKey = await _session.withoutAutoLock(_platform.unlockWithBiometric);
-      await _store.clearFailures();
-      _session.unlock(masterKey);
-    } on BiometricFailure catch (e) {
-      if (e.reason == BiometricError.invalidated || e.reason == BiometricError.notEnabled) {
-        await _store.writeBiometricEnabled(false);
-      }
-      rethrow;
-    }
-  }
-
-  @override
   Future<void> changePassword({required String current, required String next}) async {
     final encoded = await _store.readKeyMaterial();
     if (encoded == null) throw const StorageFailure('The vault has not been set up.');
     final masterKey = await _keys.unwrapMasterKey(VaultKeyMaterial.decode(encoded), current);
     try {
-      // Only the master-key wrapper changes; media and the biometric key stay valid.
+      // Only the master-key wrapper changes; media stays valid.
       final material = await _keys.wrapMasterKey(masterKey, next);
       await _store.writeKeyMaterial(material.encode());
     } finally {
       wipe(masterKey);
-    }
-  }
-
-  @override
-  Future<BiometricStatus> biometricStatus() async {
-    final status = await _platform.biometricStatus();
-    final enabled = await _store.readBiometricEnabled() && status.enabled;
-    return BiometricStatus(available: status.available, enabled: enabled, label: status.label);
-  }
-
-  @override
-  Future<void> setBiometricEnabled(bool enabled) async {
-    if (enabled) {
-      await _session.withoutAutoLock(() => _platform.enableBiometric(_session.masterKey));
-      await _store.writeBiometricEnabled(true);
-    } else {
-      await _platform.disableBiometric();
-      await _store.writeBiometricEnabled(false);
     }
   }
 

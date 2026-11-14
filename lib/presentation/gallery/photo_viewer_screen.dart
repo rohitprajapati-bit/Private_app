@@ -68,24 +68,26 @@ class _PhotoViewerScreenState extends ConsumerState<PhotoViewerScreen> {
               backgroundColor: Colors.black54,
               title: Text('${index + 1} / ${photos.length}'),
               actions: [
-                IconButton(
-                  tooltip: 'Move to album',
-                  icon: const Icon(Icons.drive_file_move_rounded),
-                  onPressed: () => MediaActions.moveToAlbum(context, ref, [current]),
-                ),
-                IconButton(
-                  tooltip: 'Save to gallery',
-                  icon: const Icon(Icons.download_rounded),
-                  onPressed: () => MediaActions.export(context, ref, [current]),
-                ),
-                IconButton(
-                  tooltip: 'Delete',
-                  icon: const Icon(Icons.delete_rounded),
-                  onPressed: () async {
-                    final deleted = await MediaActions.delete(context, ref, [current]);
-                    if (deleted && photos.length == 1 && context.mounted) context.pop();
-                  },
-                ),
+                if (!current.isShared) ...[
+                  IconButton(
+                    tooltip: 'Move to album',
+                    icon: const Icon(Icons.drive_file_move_rounded),
+                    onPressed: () => MediaActions.moveToAlbum(context, ref, [current]),
+                  ),
+                  IconButton(
+                    tooltip: 'Save to gallery',
+                    icon: const Icon(Icons.download_rounded),
+                    onPressed: () => MediaActions.export(context, ref, [current]),
+                  ),
+                  IconButton(
+                    tooltip: 'Delete',
+                    icon: const Icon(Icons.delete_rounded),
+                    onPressed: () async {
+                      final deleted = await MediaActions.delete(context, ref, [current]);
+                      if (deleted && photos.length == 1 && context.mounted) context.pop();
+                    },
+                  ),
+                ],
               ],
             )
           : null,

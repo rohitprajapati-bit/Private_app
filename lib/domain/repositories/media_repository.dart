@@ -4,12 +4,21 @@ import '../entities/album.dart';
 import '../entities/media_item.dart';
 import '../entities/vault_library.dart';
 
+/// A plaintext file to import (normally a picker copy in the app's temp directory).
+class ImportSource {
+  const ImportSource({required this.path, required this.name});
+
+  final String path;
+  final String name;
+}
+
 class ImportProgress {
   const ImportProgress({
     required this.completed,
     required this.total,
     required this.currentFraction,
     this.failed = 0,
+    this.importedPaths = const [],
   });
 
   final int completed;
@@ -19,6 +28,10 @@ class ImportProgress {
   final double currentFraction;
   final int failed;
 
+  /// Sources that are now safely encrypted in the vault (only these may be deleted from the
+  /// gallery).
+  final List<String> importedPaths;
+
   double get overall => total == 0 ? 1 : (completed + currentFraction) / total;
 }
 
@@ -27,7 +40,7 @@ abstract interface class MediaRepository {
 
   /// Encrypts picked files into the vault. Each file is an independent transaction: an
   /// interruption leaves either a complete item or nothing (cleaned up by [recover]).
-  Stream<ImportProgress> import(List<String> paths, MediaType type, {String? albumId});
+  Stream<ImportProgress> import(List<ImportSource> sources, MediaType type, {String? albumId});
 
   /// Rolls back interrupted imports and removes orphaned files.
   Future<void> recover();

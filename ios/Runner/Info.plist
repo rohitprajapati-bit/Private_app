@@ -31,10 +31,18 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_colormatch._tcp</string>
+	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Finds your other phone on this Wi-Fi to share items between them.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Use Face ID to unlock quickly.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Save items you choose to export back to your photo library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Lets the app remove items from your library after you move them.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -67,15 +75,13 @@
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
 	</array>
 </dict>
 </plist>

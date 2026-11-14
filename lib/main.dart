@@ -23,7 +23,12 @@ Future<void> main() async {
   if (!await paths.installMarker.exists()) {
     await store.deleteAll();
     await platform.disableBiometric().catchError((_) {});
+  } else if (await store.takeLegacyBiometricFlag()) {
+    await platform.disableBiometric().catchError((_) {});
   }
+  // The reverse: files exist but their key is gone (e.g. Keychain reset). They can never be
+  // decrypted, and setup would otherwise mix them with a new master key.
+  if (await store.readKeyMaterial() == null) await paths.wipe();
   await paths.ensure();
   await paths.installMarker.create();
   await platform.excludeFromBackup(paths.root.path);

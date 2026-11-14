@@ -14,7 +14,8 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$MediaItem {
 
- String get id; MediaType get type; String get name; String get extension; int get sizeBytes; DateTime get importedAt; String? get albumId; Duration? get duration; int? get width; int? get height;
+ String get id; MediaType get type; String get name; String get extension; int get sizeBytes; DateTime get importedAt; String? get albumId; Duration? get duration; int? get width; int? get height;/// Set on items received from a paired admin device. Those are view-only here.
+ String? get sharedFrom;
 /// Create a copy of MediaItem
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +26,16 @@ $MediaItemCopyWith<MediaItem> get copyWith => _$MediaItemCopyWithImpl<MediaItem>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is MediaItem&&(identical(other.id, id) || other.id == id)&&(identical(other.type, type) || other.type == type)&&(identical(other.name, name) || other.name == name)&&(identical(other.extension, extension) || other.extension == extension)&&(identical(other.sizeBytes, sizeBytes) || other.sizeBytes == sizeBytes)&&(identical(other.importedAt, importedAt) || other.importedAt == importedAt)&&(identical(other.albumId, albumId) || other.albumId == albumId)&&(identical(other.duration, duration) || other.duration == duration)&&(identical(other.width, width) || other.width == width)&&(identical(other.height, height) || other.height == height));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is MediaItem&&(identical(other.id, id) || other.id == id)&&(identical(other.type, type) || other.type == type)&&(identical(other.name, name) || other.name == name)&&(identical(other.extension, extension) || other.extension == extension)&&(identical(other.sizeBytes, sizeBytes) || other.sizeBytes == sizeBytes)&&(identical(other.importedAt, importedAt) || other.importedAt == importedAt)&&(identical(other.albumId, albumId) || other.albumId == albumId)&&(identical(other.duration, duration) || other.duration == duration)&&(identical(other.width, width) || other.width == width)&&(identical(other.height, height) || other.height == height)&&(identical(other.sharedFrom, sharedFrom) || other.sharedFrom == sharedFrom));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,type,name,extension,sizeBytes,importedAt,albumId,duration,width,height);
+int get hashCode => Object.hash(runtimeType,id,type,name,extension,sizeBytes,importedAt,albumId,duration,width,height,sharedFrom);
 
 @override
 String toString() {
-  return 'MediaItem(id: $id, type: $type, name: $name, extension: $extension, sizeBytes: $sizeBytes, importedAt: $importedAt, albumId: $albumId, duration: $duration, width: $width, height: $height)';
+  return 'MediaItem(id: $id, type: $type, name: $name, extension: $extension, sizeBytes: $sizeBytes, importedAt: $importedAt, albumId: $albumId, duration: $duration, width: $width, height: $height, sharedFrom: $sharedFrom)';
 }
 
 
@@ -45,7 +46,7 @@ abstract mixin class $MediaItemCopyWith<$Res>  {
   factory $MediaItemCopyWith(MediaItem value, $Res Function(MediaItem) _then) = _$MediaItemCopyWithImpl;
 @useResult
 $Res call({
- String id, MediaType type, String name, String extension, int sizeBytes, DateTime importedAt, String? albumId, Duration? duration, int? width, int? height
+ String id, MediaType type, String name, String extension, int sizeBytes, DateTime importedAt, String? albumId, Duration? duration, int? width, int? height, String? sharedFrom
 });
 
 
@@ -62,7 +63,7 @@ class _$MediaItemCopyWithImpl<$Res>
 
 /// Create a copy of MediaItem
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? type = null,Object? name = null,Object? extension = null,Object? sizeBytes = null,Object? importedAt = null,Object? albumId = freezed,Object? duration = freezed,Object? width = freezed,Object? height = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? type = null,Object? name = null,Object? extension = null,Object? sizeBytes = null,Object? importedAt = null,Object? albumId = freezed,Object? duration = freezed,Object? width = freezed,Object? height = freezed,Object? sharedFrom = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
@@ -74,7 +75,8 @@ as DateTime,albumId: freezed == albumId ? _self.albumId : albumId // ignore: cas
 as String?,duration: freezed == duration ? _self.duration : duration // ignore: cast_nullable_to_non_nullable
 as Duration?,width: freezed == width ? _self.width : width // ignore: cast_nullable_to_non_nullable
 as int?,height: freezed == height ? _self.height : height // ignore: cast_nullable_to_non_nullable
-as int?,
+as int?,sharedFrom: freezed == sharedFrom ? _self.sharedFrom : sharedFrom // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 
@@ -159,10 +161,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  MediaType type,  String name,  String extension,  int sizeBytes,  DateTime importedAt,  String? albumId,  Duration? duration,  int? width,  int? height)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  MediaType type,  String name,  String extension,  int sizeBytes,  DateTime importedAt,  String? albumId,  Duration? duration,  int? width,  int? height,  String? sharedFrom)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _MediaItem() when $default != null:
-return $default(_that.id,_that.type,_that.name,_that.extension,_that.sizeBytes,_that.importedAt,_that.albumId,_that.duration,_that.width,_that.height);case _:
+return $default(_that.id,_that.type,_that.name,_that.extension,_that.sizeBytes,_that.importedAt,_that.albumId,_that.duration,_that.width,_that.height,_that.sharedFrom);case _:
   return orElse();
 
 }
@@ -180,10 +182,10 @@ return $default(_that.id,_that.type,_that.name,_that.extension,_that.sizeBytes,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  MediaType type,  String name,  String extension,  int sizeBytes,  DateTime importedAt,  String? albumId,  Duration? duration,  int? width,  int? height)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  MediaType type,  String name,  String extension,  int sizeBytes,  DateTime importedAt,  String? albumId,  Duration? duration,  int? width,  int? height,  String? sharedFrom)  $default,) {final _that = this;
 switch (_that) {
 case _MediaItem():
-return $default(_that.id,_that.type,_that.name,_that.extension,_that.sizeBytes,_that.importedAt,_that.albumId,_that.duration,_that.width,_that.height);case _:
+return $default(_that.id,_that.type,_that.name,_that.extension,_that.sizeBytes,_that.importedAt,_that.albumId,_that.duration,_that.width,_that.height,_that.sharedFrom);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -200,10 +202,10 @@ return $default(_that.id,_that.type,_that.name,_that.extension,_that.sizeBytes,_
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  MediaType type,  String name,  String extension,  int sizeBytes,  DateTime importedAt,  String? albumId,  Duration? duration,  int? width,  int? height)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  MediaType type,  String name,  String extension,  int sizeBytes,  DateTime importedAt,  String? albumId,  Duration? duration,  int? width,  int? height,  String? sharedFrom)?  $default,) {final _that = this;
 switch (_that) {
 case _MediaItem() when $default != null:
-return $default(_that.id,_that.type,_that.name,_that.extension,_that.sizeBytes,_that.importedAt,_that.albumId,_that.duration,_that.width,_that.height);case _:
+return $default(_that.id,_that.type,_that.name,_that.extension,_that.sizeBytes,_that.importedAt,_that.albumId,_that.duration,_that.width,_that.height,_that.sharedFrom);case _:
   return null;
 
 }
@@ -215,7 +217,7 @@ return $default(_that.id,_that.type,_that.name,_that.extension,_that.sizeBytes,_
 
 
 class _MediaItem extends MediaItem {
-  const _MediaItem({required this.id, required this.type, required this.name, required this.extension, required this.sizeBytes, required this.importedAt, this.albumId, this.duration, this.width, this.height}): super._();
+  const _MediaItem({required this.id, required this.type, required this.name, required this.extension, required this.sizeBytes, required this.importedAt, this.albumId, this.duration, this.width, this.height, this.sharedFrom}): super._();
   
 
 @override final  String id;
@@ -228,6 +230,8 @@ class _MediaItem extends MediaItem {
 @override final  Duration? duration;
 @override final  int? width;
 @override final  int? height;
+/// Set on items received from a paired admin device. Those are view-only here.
+@override final  String? sharedFrom;
 
 /// Create a copy of MediaItem
 /// with the given fields replaced by the non-null parameter values.
@@ -239,16 +243,16 @@ _$MediaItemCopyWith<_MediaItem> get copyWith => __$MediaItemCopyWithImpl<_MediaI
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MediaItem&&(identical(other.id, id) || other.id == id)&&(identical(other.type, type) || other.type == type)&&(identical(other.name, name) || other.name == name)&&(identical(other.extension, extension) || other.extension == extension)&&(identical(other.sizeBytes, sizeBytes) || other.sizeBytes == sizeBytes)&&(identical(other.importedAt, importedAt) || other.importedAt == importedAt)&&(identical(other.albumId, albumId) || other.albumId == albumId)&&(identical(other.duration, duration) || other.duration == duration)&&(identical(other.width, width) || other.width == width)&&(identical(other.height, height) || other.height == height));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _MediaItem&&(identical(other.id, id) || other.id == id)&&(identical(other.type, type) || other.type == type)&&(identical(other.name, name) || other.name == name)&&(identical(other.extension, extension) || other.extension == extension)&&(identical(other.sizeBytes, sizeBytes) || other.sizeBytes == sizeBytes)&&(identical(other.importedAt, importedAt) || other.importedAt == importedAt)&&(identical(other.albumId, albumId) || other.albumId == albumId)&&(identical(other.duration, duration) || other.duration == duration)&&(identical(other.width, width) || other.width == width)&&(identical(other.height, height) || other.height == height)&&(identical(other.sharedFrom, sharedFrom) || other.sharedFrom == sharedFrom));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,id,type,name,extension,sizeBytes,importedAt,albumId,duration,width,height);
+int get hashCode => Object.hash(runtimeType,id,type,name,extension,sizeBytes,importedAt,albumId,duration,width,height,sharedFrom);
 
 @override
 String toString() {
-  return 'MediaItem(id: $id, type: $type, name: $name, extension: $extension, sizeBytes: $sizeBytes, importedAt: $importedAt, albumId: $albumId, duration: $duration, width: $width, height: $height)';
+  return 'MediaItem(id: $id, type: $type, name: $name, extension: $extension, sizeBytes: $sizeBytes, importedAt: $importedAt, albumId: $albumId, duration: $duration, width: $width, height: $height, sharedFrom: $sharedFrom)';
 }
 
 
@@ -259,7 +263,7 @@ abstract mixin class _$MediaItemCopyWith<$Res> implements $MediaItemCopyWith<$Re
   factory _$MediaItemCopyWith(_MediaItem value, $Res Function(_MediaItem) _then) = __$MediaItemCopyWithImpl;
 @override @useResult
 $Res call({
- String id, MediaType type, String name, String extension, int sizeBytes, DateTime importedAt, String? albumId, Duration? duration, int? width, int? height
+ String id, MediaType type, String name, String extension, int sizeBytes, DateTime importedAt, String? albumId, Duration? duration, int? width, int? height, String? sharedFrom
 });
 
 
@@ -276,7 +280,7 @@ class __$MediaItemCopyWithImpl<$Res>
 
 /// Create a copy of MediaItem
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? type = null,Object? name = null,Object? extension = null,Object? sizeBytes = null,Object? importedAt = null,Object? albumId = freezed,Object? duration = freezed,Object? width = freezed,Object? height = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? type = null,Object? name = null,Object? extension = null,Object? sizeBytes = null,Object? importedAt = null,Object? albumId = freezed,Object? duration = freezed,Object? width = freezed,Object? height = freezed,Object? sharedFrom = freezed,}) {
   return _then(_MediaItem(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,type: null == type ? _self.type : type // ignore: cast_nullable_to_non_nullable
@@ -288,7 +292,8 @@ as DateTime,albumId: freezed == albumId ? _self.albumId : albumId // ignore: cas
 as String?,duration: freezed == duration ? _self.duration : duration // ignore: cast_nullable_to_non_nullable
 as Duration?,width: freezed == width ? _self.width : width // ignore: cast_nullable_to_non_nullable
 as int?,height: freezed == height ? _self.height : height // ignore: cast_nullable_to_non_nullable
-as int?,
+as int?,sharedFrom: freezed == sharedFrom ? _self.sharedFrom : sharedFrom // ignore: cast_nullable_to_non_nullable
+as String?,
   ));
 }
 

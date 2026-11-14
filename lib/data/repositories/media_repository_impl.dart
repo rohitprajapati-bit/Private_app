@@ -66,7 +66,7 @@ class MediaRepositoryImpl implements MediaRepository {
         MediaItem(
           id: record.id,
           type: MediaType.values[record.type],
-          name: await _keys.decryptText(masterKey, record.encryptedName, _nameContext(record.id)),
+          name: await _keys.decryptText(masterKey, record.encryptedName, nameContext(record.id)),
           extension: record.extension,
           sizeBytes: record.sizeBytes,
           importedAt: DateTime.fromMillisecondsSinceEpoch(record.importedAt),
@@ -74,6 +74,7 @@ class MediaRepositoryImpl implements MediaRepository {
           duration: record.durationMs == null ? null : Duration(milliseconds: record.durationMs!),
           width: record.width,
           height: record.height,
+          sharedFrom: record.sharedFrom,
         ),
       );
     }
@@ -91,24 +92,37 @@ class MediaRepositoryImpl implements MediaRepository {
   }
 
   @override
-  Stream<ImportProgress> import(List<String> paths, MediaType type, {String? albumId}) {
+  Stream<ImportProgress> import(List<ImportSource> sources, MediaType type, {String? albumId}) {
     final controller = StreamController<ImportProgress>();
     Future<void> run() async {
       var failed = 0;
-      for (var i = 0; i < paths.length; i++) {
-        var lastReported = 0.0;
-        try {
-          await _importOne(paths[i], type, albumId, (fraction) {
-            if (fraction - lastReported < 0.02 && fraction < 1) return;
-            lastReported = fraction;
-            controller.add(ImportProgress(completed: i, total: paths.length, currentFraction: fraction, failed: failed));
-          });
-        } on Object {
-          failed++;
+      final imported = <String>[];
+      try {
+        for (var i = 0; i < sources.length; i++) {
+          var lastReported = 0.0;
+          ImportProgress progress(int completed, double fraction) => ImportProgress(
+            completed: completed,
+            total: sources.length,
+            currentFraction: fraction,
+            failed: failed,
+            importedPaths: List.unmodifiable(imported),
+          );
+          try {
+            await _importOne(sources[i], type, albumId, (fraction) {
+              if (fraction - lastReported < 0.02 && fraction < 1) return;
+              lastReported = fraction;
+              controller.add(progress(i, fraction));
+            });
+            imported.add(sources[i].path);
+          } on Object {
+            failed++;
+          }
+          controller.add(progress(i + 1, 0));
         }
-        controller.add(ImportProgress(completed: i + 1, total: paths.length, currentFraction: 0, failed: failed));
+      } finally {
+        // Always close, or the progress dialog would wait forever.
+        await controller.close();
       }
-      await controller.close();
     }
 
     unawaited(run());
@@ -122,7 +136,8 @@ class MediaRepositoryImpl implements MediaRepository {
   ///  4. mark the row committed
   ///  5. delete the picker's plaintext copy
   /// A crash before step 4 leaves a pending row and/or .part files that [recover] removes.
-  Future<void> _importOne(String path, MediaType type, String? albumId, void Function(double) onProgress) async {
+  Future<void> _importOne(ImportSource item, MediaType type, String? albumId, void Function(double) onProgress) async {
+    final path = item.path;
     // Own copy: locking wipes the session's buffer, which must not corrupt a half-written record.
     final masterKey = Uint8List.fromList(_session.masterKey);
     final source = File(path);
@@ -138,7 +153,7 @@ class MediaRepositoryImpl implements MediaRepository {
         MediaRecord(
           id: id,
           type: type.index,
-          encryptedName: await _keys.encryptText(masterKey, p.basenameWithoutExtension(path), _nameContext(id)),
+          encryptedName: await _keys.encryptText(masterKey, item.name, nameContext(id)),
           extension: extension,
           wrappedKey: await _keys.wrapFileKey(masterKey, fileKey, id),
           sizeBytes: await source.length(),
@@ -164,7 +179,7 @@ class MediaRepositoryImpl implements MediaRepository {
       );
       final thumbnail = info?.thumbnail;
       if (thumbnail != null) {
-        await _cipher.encryptBytes(data: thumbnail, target: thumbPart, key: fileKey, fileId: _thumbId(id));
+        await _cipher.encryptBytes(data: thumbnail, target: thumbPart, key: fileKey, fileId: thumbId(id));
         await thumbPart.rename(_paths.thumbFile(id).path);
       }
       if (!_session.isUnlocked) throw const VaultLocked();
@@ -172,7 +187,11 @@ class MediaRepositoryImpl implements MediaRepository {
       await _db.commit(id);
     } on Object {
       await _deleteQuietly([mediaPart, thumbPart, _paths.mediaFile(id), _paths.thumbFile(id)]);
-      await _db.deleteMedia([id]);
+      try {
+        await _db.deleteMedia([id]);
+      } on Object {
+        // A leftover pending row is removed by recover() on the next unlock.
+      }
       rethrow;
     } finally {
       wipe(fileKey);
@@ -212,7 +231,7 @@ class MediaRepositoryImpl implements MediaRepository {
     if (cached != null) return _thumbCache[item.id] = cached;
     final file = _paths.thumbFile(item.id);
     if (!await file.exists()) throw const StorageFailure('No preview.');
-    final bytes = await _withFileKey(item.id, (key) => _cipher.decryptToMemory(source: file, key: key, fileId: _thumbId(item.id)));
+    final bytes = await _withFileKey(item.id, (key) => _cipher.decryptToMemory(source: file, key: key, fileId: thumbId(item.id)));
     _thumbCache[item.id] = bytes;
     if (_thumbCache.length > _thumbCacheSize) _thumbCache.remove(_thumbCache.keys.first);
     return bytes;
@@ -243,6 +262,7 @@ class MediaRepositoryImpl implements MediaRepository {
 
   @override
   Future<int> export(List<MediaItem> items) => _session.withoutAutoLock(() async {
+    _requireOwned(items);
     if (!await Gal.hasAccess() && !await Gal.requestAccess()) {
       throw const StorageFailure('Permission to save to the gallery was denied.');
     }
@@ -273,6 +293,7 @@ class MediaRepositoryImpl implements MediaRepository {
 
   @override
   Future<void> delete(List<MediaItem> items) async {
+    _requireOwned(items);
     // Deleting the row destroys the wrapped file key first: from that moment the ciphertext
     // is unrecoverable even if flash storage keeps old blocks around.
     await _db.deleteMedia(items.map((i) => i.id));
@@ -284,7 +305,10 @@ class MediaRepositoryImpl implements MediaRepository {
   }
 
   @override
-  Future<void> move(List<MediaItem> items, String? albumId) => _db.moveMedia(items.map((i) => i.id), albumId);
+  Future<void> move(List<MediaItem> items, String? albumId) async {
+    _requireOwned(items);
+    await _db.moveMedia(items.map((i) => i.id), albumId);
+  }
 
   @override
   Future<Album> createAlbum(String name) async {
@@ -331,9 +355,14 @@ class MediaRepositoryImpl implements MediaRepository {
     }
   }
 
-  static String _nameContext(String id) => 'media-name/$id';
+  /// Shared items are view-only: only the admin device can change or export them.
+  static void _requireOwned(List<MediaItem> items) {
+    if (items.any((i) => i.isShared)) throw const StorageFailure('Shared items are view-only.');
+  }
+
+  static String nameContext(String id) => 'media-name/$id';
   static String _albumContext(String id) => 'album-name/$id';
-  static String _thumbId(String id) => '$id/thumb';
+  static String thumbId(String id) => '$id/thumb';
 
   static String _extensionOf(String path, bool isVideo) {
     final ext = p.extension(path).replaceFirst('.', '').toLowerCase();

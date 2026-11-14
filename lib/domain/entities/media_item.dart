@@ -19,9 +19,14 @@ abstract class MediaItem with _$MediaItem {
     Duration? duration,
     int? width,
     int? height,
+
+    /// Set on items received from a paired admin device. Those are view-only here.
+    String? sharedFrom,
   }) = _MediaItem;
 
   bool get isVideo => type == MediaType.video;
+
+  bool get isShared => sharedFrom != null;
 
   String get mimeType => switch (extension.toLowerCase()) {
     'mov' => 'video/quicktime',

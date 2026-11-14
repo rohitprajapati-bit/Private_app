@@ -2,15 +2,16 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/errors/failures.dart';
 import '../../core/security/vault_session.dart';
 import '../../core/theme/app_theme.dart';
 import '../../injection.dart';
-import '../../platform/platform_services.dart';
+import '../../routes/app_router.dart';
 import '../common/password_field.dart';
 
-/// Password / biometric gate. Only reachable through the secret in-game sequence; on success
+/// Password gate. Only reachable through the secret in-game sequence; on success
 /// the router moves to the vault.
 class UnlockScreen extends ConsumerStatefulWidget {
   const UnlockScreen({super.key});
@@ -23,7 +24,6 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
   final _password = TextEditingController();
   bool _busy = false;
   String? _error;
-  BiometricStatus _biometrics = BiometricStatus.none;
   Duration _lockout = Duration.zero;
   Timer? _lockoutTimer;
   late final VaultSession _session;
@@ -36,12 +36,8 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
   }
 
   Future<void> _init() async {
-    final auth = ref.read(authRepositoryProvider);
-    final status = await auth.biometricStatus();
-    _startLockoutCountdown(await auth.lockoutRemaining());
-    if (!mounted) return;
-    setState(() => _biometrics = status);
-    if (status.enabled) await _unlockWithBiometrics();
+    final remaining = await ref.read(authRepositoryProvider).lockoutRemaining();
+    if (mounted) _startLockoutCountdown(remaining);
   }
 
   @override
@@ -76,6 +72,7 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
     try {
       await ref.read(authRepositoryProvider).unlockWithPassword(_password.text);
       _password.clear();
+      _openVault();
     } on LockedOut catch (e) {
       _startLockoutCountdown(e.remaining);
       _setError(e.message);
@@ -86,24 +83,10 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
     }
   }
 
-  Future<void> _unlockWithBiometrics() async {
-    if (_busy) return;
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      await ref.read(authRepositoryProvider).unlockWithBiometric();
-    } on BiometricFailure catch (e) {
-      if (e.reason != BiometricError.cancelled) _setError(e.message);
-      if (e.reason == BiometricError.invalidated || e.reason == BiometricError.notEnabled) {
-        setState(() => _biometrics = BiometricStatus(available: _biometrics.available, enabled: false, label: _biometrics.label));
-      }
-    } on VaultFailure catch (e) {
-      _setError(e.message);
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+  /// This screen is pushed on top of the game, and go_router does not re-run redirects for
+  /// pushed routes, so navigate explicitly. `go` replaces the stack, removing the game below.
+  void _openVault() {
+    if (mounted && _session.isUnlocked) context.go(Routes.vault);
   }
 
   void _setError(String message) {
@@ -135,7 +118,7 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
                   PasswordField(
                     controller: _password,
                     label: 'Password',
-                    autofocus: !_biometrics.enabled,
+                    autofocus: true,
                     textInputAction: TextInputAction.done,
                     onSubmitted: (_) => _unlockWithPassword(),
                   ),
@@ -153,15 +136,6 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
                         ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
                         : const Text('Unlock'),
                   ),
-                  if (_biometrics.enabled) ...[
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(minimumSize: const Size(56, 52)),
-                      onPressed: _busy ? null : _unlockWithBiometrics,
-                      icon: const Icon(Icons.fingerprint_rounded),
-                      label: Text('Use ${_biometrics.label}'),
-                    ),
-                  ],
                 ],
               ),
             ),

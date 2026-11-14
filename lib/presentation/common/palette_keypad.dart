@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants/app_constants.dart';
 
-/// Row of palette swatches. Used as the game's "tile style" picker and as the keypad for
-/// recording the secret sequence.
+/// Row of numbered palette swatches. Used as the game's "tile style" picker and as the keypad
+/// for recording the secret sequence; the numbers help the owner remember their sequence.
 class PaletteKeypad extends StatelessWidget {
   const PaletteKeypad({super.key, required this.onTap, this.selected, this.size = 44});
 
@@ -35,6 +35,16 @@ class PaletteKeypad extends StatelessWidget {
                   boxShadow: [
                     BoxShadow(color: AppConstants.palette[i].withValues(alpha: 0.45), blurRadius: 10),
                   ],
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  '${i + 1}',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: size * 0.4,
+                    fontWeight: FontWeight.w800,
+                    shadows: const [Shadow(color: Colors.black54, blurRadius: 4)],
+                  ),
                 ),
               ),
             ),

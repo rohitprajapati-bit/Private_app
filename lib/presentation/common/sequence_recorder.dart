@@ -59,6 +59,11 @@ class _SequenceRecorderState extends State<SequenceRecorder> {
         ),
         const SizedBox(height: 16),
         SequenceDots(taps: _taps, max: length),
+        const SizedBox(height: 8),
+        Text(
+          _taps.isEmpty ? ' ' : _taps.map((i) => i + 1).join(' · '),
+          style: const TextStyle(color: AppColors.textMuted, fontWeight: FontWeight.w700, letterSpacing: 1),
+        ),
         const SizedBox(height: 20),
         PaletteKeypad(onTap: _tap, size: 48),
         if (_error != null) ...[

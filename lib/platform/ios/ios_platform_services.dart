@@ -2,15 +2,7 @@ import 'package:flutter/services.dart';
 
 import '../platform_services.dart';
 
-/// iOS: Keychain item gated by Face ID / Touch ID with device-passcode fallback.
 class IosPlatformServices extends MethodChannelPlatformServices {
-  @override
-  String biometricLabel(String? kind) => switch (kind) {
-    'face' => 'Face ID',
-    'fingerprint' => 'Touch ID',
-    _ => 'Device passcode',
-  };
-
   @override
   Future<Uint8List?> transcodeForDisplay(Uint8List bytes) async {
     if (!_isHeif(bytes)) return null;

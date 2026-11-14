@@ -49,21 +49,28 @@ class StorageFailure extends VaultFailure {
   final String message;
 }
 
-enum BiometricError { cancelled, lockout, invalidated, notEnabled, unavailable, failed }
+enum GalleryDeleteError { cancelled, denied, unsupported, failed }
 
-class BiometricFailure extends VaultFailure {
-  const BiometricFailure(this.reason);
+/// Removing originals from the device gallery after import did not happen.
+class GalleryDeleteFailure extends VaultFailure {
+  const GalleryDeleteFailure(this.reason);
 
-  final BiometricError reason;
+  final GalleryDeleteError reason;
 
   @override
   String get message => switch (reason) {
-    BiometricError.cancelled => 'Cancelled.',
-    BiometricError.lockout => 'Biometrics are temporarily locked. Use your password.',
-    BiometricError.invalidated =>
-      'Biometric enrollment changed. Unlock with your password and re-enable biometrics.',
-    BiometricError.notEnabled => 'Biometric unlock is not enabled.',
-    BiometricError.unavailable => 'Biometrics are not available on this device.',
-    BiometricError.failed => 'Biometric authentication failed.',
+    GalleryDeleteError.cancelled => 'Originals were kept in your gallery.',
+    GalleryDeleteError.denied =>
+      'Allow full photo access in Settings so the originals can be removed from your gallery.',
+    GalleryDeleteError.unsupported => 'Delete the originals from your gallery manually on this Android version.',
+    GalleryDeleteError.failed => 'The originals could not be removed from your gallery.',
   };
+}
+
+/// Pairing or syncing with another device failed (not found, refused, access removed…).
+class SharingFailure extends VaultFailure {
+  const SharingFailure(this.message);
+
+  @override
+  final String message;
 }

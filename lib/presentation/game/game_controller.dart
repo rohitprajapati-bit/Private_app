@@ -30,7 +30,8 @@ abstract class GameState with _$GameState {
   }) = _GameState;
 }
 
-final gameControllerProvider = NotifierProvider.autoDispose<GameController, GameState>(GameController.new);
+final gameControllerProvider =
+    NotifierProvider.autoDispose<GameController, GameState>(GameController.new);
 
 class GameController extends Notifier<GameState> {
   static const _tick = Duration(milliseconds: 100);
@@ -97,7 +98,9 @@ class GameController extends Notifier<GameState> {
     final streak = state.streak + 1;
     final score = state.score + RoundGenerator.pointsFor(state.level, streak);
     final roundInLevel = state.roundInLevel + 1;
-    ref.read(gameProgressProvider.notifier).update((p) => p.copyWith(totalMatches: p.totalMatches + 1));
+    ref
+        .read(gameProgressProvider.notifier)
+        .update((p) => p.copyWith(totalMatches: p.totalMatches + 1));
 
     if (roundInLevel >= RoundGenerator.roundsPerLevel) {
       _timer?.cancel();
@@ -111,9 +114,14 @@ class GameController extends Notifier<GameState> {
         wrongIndex: null,
       );
       final reached = state.level + 1;
-      ref.read(gameProgressProvider.notifier).update(
-        (p) => p.copyWith(highestLevel: max(p.highestLevel, reached), bestScore: max(p.bestScore, state.score)),
-      );
+      ref
+          .read(gameProgressProvider.notifier)
+          .update(
+            (p) => p.copyWith(
+              highestLevel: max(p.highestLevel, reached),
+              bestScore: max(p.bestScore, state.score),
+            ),
+          );
       unawaited(feedback.play(GameSound.level, settings));
       return;
     }
@@ -145,9 +153,18 @@ class GameController extends Notifier<GameState> {
   void _gameOver() {
     _timer?.cancel();
     state = state.copyWith(status: GameStatus.gameOver);
-    ref.read(gameProgressProvider.notifier).update(
-      (p) => p.copyWith(bestScore: max(p.bestScore, state.score), gamesPlayed: p.gamesPlayed + 1),
+    ref
+        .read(gameProgressProvider.notifier)
+        .update(
+          (p) => p.copyWith(
+            bestScore: max(p.bestScore, state.score),
+            gamesPlayed: p.gamesPlayed + 1,
+          ),
+        );
+    unawaited(
+      ref
+          .read(gameFeedbackProvider)
+          .play(GameSound.gameOver, ref.read(gameSettingsProvider)),
     );
-    unawaited(ref.read(gameFeedbackProvider).play(GameSound.gameOver, ref.read(gameSettingsProvider)));
   }
 }

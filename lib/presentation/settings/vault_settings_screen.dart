@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/constants/app_constants.dart';
 import '../../core/errors/failures.dart';
 import '../../core/theme/app_theme.dart';
 import '../../domain/usecases/password_policy.dart';
 import '../../injection.dart';
-import '../../platform/platform_services.dart';
+import '../../routes/app_router.dart';
 import '../common/password_field.dart';
 import '../common/sequence_recorder.dart';
 import '../gallery/media_grid.dart';
@@ -20,10 +21,8 @@ class VaultSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _VaultSettingsScreenState extends ConsumerState<VaultSettingsScreen> {
-  BiometricStatus _biometrics = BiometricStatus.none;
   Duration _autoLock = AppConstants.defaultAutoLock;
-  bool _busy = false;
-
+  bool _removeOriginals = true;
   @override
   void initState() {
     super.initState();
@@ -32,30 +31,18 @@ class _VaultSettingsScreenState extends ConsumerState<VaultSettingsScreen> {
 
   Future<void> _load() async {
     final auth = ref.read(authRepositoryProvider);
-    final status = await auth.biometricStatus();
     final autoLock = await auth.autoLockDuration();
+    final removeOriginals = await ref.read(secureStoreProvider).readRemoveOriginals();
     if (mounted) {
       setState(() {
-        _biometrics = status;
         _autoLock = autoLock;
+        _removeOriginals = removeOriginals;
       });
     }
   }
 
   void _toast(String message) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-
-  Future<void> _setBiometrics(bool enabled) async {
-    setState(() => _busy = true);
-    try {
-      await ref.read(authRepositoryProvider).setBiometricEnabled(enabled);
-    } on VaultFailure catch (e) {
-      if (mounted && !(e is BiometricFailure && e.reason == BiometricError.cancelled)) _toast(e.message);
-    } finally {
-      await _load();
-      if (mounted) setState(() => _busy = false);
-    }
-  }
 
   Future<void> _changePassword() async {
     final changed = await showDialog<bool>(context: context, builder: (_) => const _ChangePasswordDialog());
@@ -96,18 +83,27 @@ class _VaultSettingsScreenState extends ConsumerState<VaultSettingsScreen> {
                     title: const Text('Change password'),
                     onTap: _changePassword,
                   ),
-                  SwitchListTile(
-                    secondary: const Icon(Icons.fingerprint_rounded),
-                    title: Text('Unlock with ${_biometrics.label}'),
-                    subtitle: _biometrics.available ? null : const Text('Not available on this device'),
-                    value: _biometrics.enabled,
-                    onChanged: !_biometrics.available || _busy ? null : _setBiometrics,
+                  ListTile(
+                    leading: const Icon(Icons.share_rounded),
+                    title: const Text('Sharing'),
+                    subtitle: const Text('Share with another phone, view-only'),
+                    onTap: () => context.go(Routes.sharing),
                   ),
                   ListTile(
                     leading: const Icon(Icons.palette_rounded),
                     title: const Text('Change secret colours'),
                     subtitle: const Text('Pause a game → Tile style'),
                     onTap: _changeSequence,
+                  ),
+                  SwitchListTile(
+                    secondary: const Icon(Icons.delete_sweep_rounded),
+                    title: const Text('Remove originals from gallery'),
+                    subtitle: const Text('After import. Your phone asks you to confirm.'),
+                    value: _removeOriginals,
+                    onChanged: (v) async {
+                      await ref.read(secureStoreProvider).writeRemoveOriginals(v);
+                      setState(() => _removeOriginals = v);
+                    },
                   ),
                   ListTile(
                     leading: const Icon(Icons.timer_rounded),

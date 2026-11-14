@@ -23,6 +23,7 @@ class SecureStore {
   static const _lastFailure = 'vault.lastFailure';
   static const _biometric = 'vault.biometric';
   static const _autoLockSeconds = 'vault.autoLockSeconds';
+  static const _keepOriginals = 'vault.keepOriginals';
 
   Future<String?> readKeyMaterial() => _storage.read(key: _keyMaterial);
   Future<void> writeKeyMaterial(String value) => _storage.write(key: _keyMaterial, value: value);
@@ -47,9 +48,12 @@ class SecureStore {
     await _storage.delete(key: _lastFailure);
   }
 
-  Future<bool> readBiometricEnabled() async => await _storage.read(key: _biometric) == '1';
-  Future<void> writeBiometricEnabled(bool enabled) =>
-      enabled ? _storage.write(key: _biometric, value: '1') : _storage.delete(key: _biometric);
+  /// Older versions could store the master key behind biometrics; that unlock path is gone.
+  Future<bool> takeLegacyBiometricFlag() async {
+    final enabled = await _storage.read(key: _biometric) == '1';
+    if (enabled) await _storage.delete(key: _biometric);
+    return enabled;
+  }
 
   Future<Duration?> readAutoLock() async {
     final seconds = int.tryParse(await _storage.read(key: _autoLockSeconds) ?? '');
@@ -58,6 +62,19 @@ class SecureStore {
 
   Future<void> writeAutoLock(Duration value) =>
       _storage.write(key: _autoLockSeconds, value: '${value.inSeconds}');
+
+  /// Remove gallery originals after import unless the owner turned it off.
+  Future<bool> readRemoveOriginals() async => await _storage.read(key: _keepOriginals) != '1';
+  Future<void> writeRemoveOriginals(bool remove) =>
+      remove ? _storage.delete(key: _keepOriginals) : _storage.write(key: _keepOriginals, value: '1');
+
+  static const sharingDeviceId = 'sharing.deviceId';
+  static const sharingViewers = 'sharing.viewers';
+  static const sharingAdmin = 'sharing.admin';
+
+  Future<String?> readSharing(String key) => _storage.read(key: key);
+  Future<void> writeSharing(String key, String? value) =>
+      value == null ? _storage.delete(key: key) : _storage.write(key: key, value: value);
 
   /// iOS keeps Keychain items after uninstall; called when the app's files are gone.
   Future<void> deleteAll() => _storage.deleteAll();

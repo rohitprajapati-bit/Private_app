@@ -16,6 +16,7 @@ class PlatformChannel(private val activity: FragmentActivity) : MethodChannel.Me
     }
 
     private val biometricKeys = BiometricKeyStore(activity)
+    private val galleryPicker = GalleryPicker(activity)
     private val background = Executors.newSingleThreadExecutor()
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
@@ -59,6 +60,8 @@ class PlatformChannel(private val activity: FragmentActivity) : MethodChannel.Me
             }
             // Android decodes HEIF natively through Flutter's platform decoder; nothing to do.
             "transcodeToJpeg" -> result.success(null)
+            "pickMedia" -> galleryPicker.pick(call.argument<Boolean>("video") == true, result)
+            "deleteOriginals" -> galleryPicker.deleteOriginals(call.argument<List<String>>("ids") ?: emptyList(), result)
             // Android backup is disabled in the manifest.
             "excludeFromBackup" -> result.success(null)
             else -> result.notImplemented()

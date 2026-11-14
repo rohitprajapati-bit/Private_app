@@ -8,15 +8,21 @@ import '../../injection.dart';
 
 final vaultLibraryProvider = AsyncNotifierProvider<VaultLibraryNotifier, VaultLibrary>(VaultLibraryNotifier.new);
 
-/// Decrypted listing of the open vault. Reset to empty the moment the vault locks.
+/// Decrypted listing of the open vault. Empty while locked, reloaded on every unlock.
 class VaultLibraryNotifier extends AsyncNotifier<VaultLibrary> {
   @override
   Future<VaultLibrary> build() async {
     final session = ref.watch(sessionProvider);
-    void onLock() => ref.invalidateSelf();
-    session.addLockListener(onLock);
-    ref.onDispose(() => session.removeLockListener(onLock));
-    if (!session.isUnlocked) return const VaultLibrary();
+    final builtUnlocked = session.isUnlocked;
+    // Rebuild on both transitions. Rebuilding only on lock left an empty listing cached
+    // (built while locked) that the next unlock never replaced.
+    void onSessionChanged() {
+      if (session.isUnlocked != builtUnlocked) ref.invalidateSelf();
+    }
+
+    session.addListener(onSessionChanged);
+    ref.onDispose(() => session.removeListener(onSessionChanged));
+    if (!builtUnlocked) return const VaultLibrary();
     return ref.read(mediaRepositoryProvider).load();
   }
 
@@ -30,30 +36,34 @@ class VaultLibraryNotifier extends AsyncNotifier<VaultLibrary> {
     }
   }
 
-  Future<void> delete(List<MediaItem> items) async {
-    await ref.read(mediaRepositoryProvider).delete(items);
-    await reload();
-  }
+  Future<void> delete(List<MediaItem> items) =>
+      _whileUnlocked(() => ref.read(mediaRepositoryProvider).delete(items));
 
-  Future<void> move(List<MediaItem> items, String? albumId) async {
-    await ref.read(mediaRepositoryProvider).move(items, albumId);
-    await reload();
-  }
+  Future<void> move(List<MediaItem> items, String? albumId) =>
+      _whileUnlocked(() => ref.read(mediaRepositoryProvider).move(items, albumId));
 
-  Future<Album> createAlbum(String name) async {
-    final album = await ref.read(mediaRepositoryProvider).createAlbum(name);
-    await reload();
-    return album;
-  }
+  /// Null when the vault locked before the album could be created.
+  Future<Album?> createAlbum(String name) =>
+      _whileUnlocked(() => ref.read(mediaRepositoryProvider).createAlbum(name));
 
-  Future<void> renameAlbum(String id, String name) async {
-    await ref.read(mediaRepositoryProvider).renameAlbum(id, name);
-    await reload();
-  }
+  Future<void> renameAlbum(String id, String name) =>
+      _whileUnlocked(() => ref.read(mediaRepositoryProvider).renameAlbum(id, name));
 
-  Future<void> deleteAlbum(String id) async {
-    await ref.read(mediaRepositoryProvider).deleteAlbum(id);
-    await reload();
+  Future<void> deleteAlbum(String id) =>
+      _whileUnlocked(() => ref.read(mediaRepositoryProvider).deleteAlbum(id));
+
+  /// The vault can lock at any moment (background, idle timeout) — e.g. while a dialog is
+  /// open. A change started after that is dropped instead of surfacing as an uncaught error;
+  /// the router has already returned to the game.
+  Future<T?> _whileUnlocked<T>(Future<T> Function() change) async {
+    if (!ref.read(sessionProvider).isUnlocked) return null;
+    try {
+      final result = await change();
+      await reload();
+      return result;
+    } on VaultLocked {
+      return null;
+    }
   }
 }
 

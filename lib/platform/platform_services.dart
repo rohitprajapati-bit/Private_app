@@ -6,16 +6,18 @@ import '../core/errors/failures.dart';
 import 'android/android_platform_services.dart';
 import 'ios/ios_platform_services.dart';
 
-class BiometricStatus {
-  const BiometricStatus({required this.available, required this.enabled, required this.label});
+/// A file chosen in the system picker, copied into the app's temp directory.
+class PickedMedia {
+  const PickedMedia({required this.path, required this.name, this.sourceId});
 
-  static const none = BiometricStatus(available: false, enabled: false, label: 'Biometrics');
+  final String path;
 
-  final bool available;
-  final bool enabled;
+  /// Original file name without extension (e.g. IMG_1234).
+  final String name;
 
-  /// "Face ID", "Touch ID", "Fingerprint / face"…
-  final String label;
+  /// Gallery identifier used to delete the original after import (iOS PHAsset local id /
+  /// Android document URI). Null when the item can't be deleted (e.g. cloud documents).
+  final String? sourceId;
 }
 
 class MediaInfo {
@@ -33,15 +35,7 @@ abstract class PlatformServices {
   factory PlatformServices() =>
       Platform.isIOS ? IosPlatformServices() : AndroidPlatformServices();
 
-  Future<BiometricStatus> biometricStatus();
-
-  /// Stores [masterKey] behind a hardware key that requires biometric (or device credential)
-  /// authentication. Prompts the user.
-  Future<void> enableBiometric(Uint8List masterKey);
-
-  /// Prompts and returns the master key on success.
-  Future<Uint8List> unlockWithBiometric();
-
+  /// Deletes any biometric-protected key left by older versions of the app.
   Future<void> disableBiometric();
 
   /// Android: FLAG_SECURE (blank recents thumbnail, no screenshots).
@@ -54,51 +48,18 @@ abstract class PlatformServices {
   Future<Uint8List?> transcodeForDisplay(Uint8List bytes);
 
   Future<void> excludeFromBackup(String path);
+
+  /// System photo/video picker that also reports each item's gallery id.
+  Future<List<PickedMedia>> pickMedia({required bool video});
+
+  /// Deletes originals from the device gallery. The OS always asks the user to confirm.
+  /// Returns how many were deleted; throws [GalleryDeleteFailure].
+  Future<int> deleteOriginals(List<String> sourceIds);
 }
 
 /// Shared MethodChannel plumbing; subclasses only adapt platform differences.
 abstract class MethodChannelPlatformServices implements PlatformServices {
   static const channel = MethodChannel('color_match/platform');
-
-  String get promptTitle => 'Unlock';
-  String get promptCancel => 'Use password';
-
-  @override
-  Future<BiometricStatus> biometricStatus() async {
-    try {
-      final map = await channel.invokeMapMethod<String, Object?>('biometricStatus') ?? {};
-      return BiometricStatus(
-        available: map['available'] == true,
-        enabled: map['enabled'] == true,
-        label: biometricLabel(map['kind'] as String?),
-      );
-    } on PlatformException {
-      return BiometricStatus.none;
-    } on MissingPluginException {
-      return BiometricStatus.none;
-    }
-  }
-
-  String biometricLabel(String? kind);
-
-  @override
-  Future<void> enableBiometric(Uint8List masterKey) => _guard(
-    () => channel.invokeMethod<void>('biometricEnable', {
-      // Copy: the native side zeroes its buffer after wrapping.
-      'key': Uint8List.fromList(masterKey),
-      'title': promptTitle,
-      'cancel': promptCancel,
-    }),
-  );
-
-  @override
-  Future<Uint8List> unlockWithBiometric() async {
-    final key = await _guard(
-      () => channel.invokeMethod<Uint8List>('biometricUnlock', {'title': promptTitle, 'cancel': promptCancel}),
-    );
-    if (key == null || key.length != 32) throw const BiometricFailure(BiometricError.failed);
-    return key;
-  }
 
   @override
   Future<void> disableBiometric() => channel.invokeMethod<void>('biometricDisable');
@@ -142,15 +103,28 @@ abstract class MethodChannelPlatformServices implements PlatformServices {
     }
   }
 
-  Future<T> _guard<T>(Future<T> Function() call) async {
+  @override
+  Future<List<PickedMedia>> pickMedia({required bool video}) async {
+    final list = await channel.invokeListMethod<Map<Object?, Object?>>('pickMedia', {'video': video}) ?? const [];
+    return [
+      for (final m in list)
+        PickedMedia(
+          path: m['path']! as String,
+          name: (m['name'] as String?)?.trim().isNotEmpty == true ? m['name']! as String : 'Item',
+          sourceId: (m['sourceId'] as String?)?.isNotEmpty == true ? m['sourceId']! as String : null,
+        ),
+    ];
+  }
+
+  @override
+  Future<int> deleteOriginals(List<String> sourceIds) async {
+    if (sourceIds.isEmpty) return 0;
     try {
-      return await call();
+      return await channel.invokeMethod<int>('deleteOriginals', {'ids': sourceIds}) ?? 0;
     } on PlatformException catch (e) {
-      throw BiometricFailure(
-        BiometricError.values.firstWhere((v) => v.name == e.code, orElse: () => BiometricError.failed),
+      throw GalleryDeleteFailure(
+        GalleryDeleteError.values.firstWhere((v) => v.name == e.code, orElse: () => GalleryDeleteError.failed),
       );
-    } on MissingPluginException {
-      throw const BiometricFailure(BiometricError.unavailable);
     }
   }
 }

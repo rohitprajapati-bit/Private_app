@@ -30,12 +30,14 @@ String formatBytes(int bytes) {
 }
 
 /// Searchable, sortable, multi-select grid of vault items.
-/// [type] filters to photos or videos; [albumId] restricts to one album.
+/// [type] filters to photos or videos; [albumId] restricts to one album. [shared] shows only
+/// items received from an admin device (view-only: no selection) instead of the owner's own.
 class MediaGrid extends ConsumerStatefulWidget {
-  const MediaGrid({super.key, this.type, this.albumId, required this.basePath});
+  const MediaGrid({super.key, this.type, this.albumId, this.shared = false, required this.basePath});
 
   final MediaType? type;
   final String? albumId;
+  final bool shared;
 
   /// Route prefix for opening items (`/vault` or `/vault/album/<id>`).
   final String basePath;
@@ -52,7 +54,7 @@ class _MediaGridState extends ConsumerState<MediaGrid> {
   bool get _selecting => _selected.isNotEmpty;
 
   List<MediaItem> _visible(VaultLibrary library) {
-    var items = library.items;
+    var items = library.items.where((i) => i.isShared == widget.shared).toList();
     if (widget.type != null) items = items.where((i) => i.type == widget.type).toList();
     if (widget.albumId != null) items = items.where((i) => i.albumId == widget.albumId).toList();
     return items.matching(_query).sortedBy(_sort);
@@ -110,7 +112,7 @@ class _MediaGridState extends ConsumerState<MediaGrid> {
               ),
             Expanded(
               child: visible.isEmpty
-                  ? _Empty(searching: _query.isNotEmpty, type: widget.type)
+                  ? _Empty(searching: _query.isNotEmpty, type: widget.type, shared: widget.shared)
                   : LayoutBuilder(
                       builder: (context, constraints) {
                         final columns = (constraints.maxWidth / 120).floor().clamp(3, 6);
@@ -130,7 +132,7 @@ class _MediaGridState extends ConsumerState<MediaGrid> {
                               selected: _selected.contains(item.id),
                               selecting: _selecting,
                               onTap: () => _selecting ? _toggle(item) : _open(item, visible),
-                              onLongPress: () => _toggle(item),
+                              onLongPress: widget.shared ? null : () => _toggle(item),
                             );
                           },
                         );
@@ -159,7 +161,7 @@ class _GridTile extends StatelessWidget {
   final bool selected;
   final bool selecting;
   final VoidCallback onTap;
-  final VoidCallback onLongPress;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -294,10 +296,11 @@ class _SelectionBar extends StatelessWidget {
 }
 
 class _Empty extends StatelessWidget {
-  const _Empty({required this.searching, required this.type});
+  const _Empty({required this.searching, required this.type, required this.shared});
 
   final bool searching;
   final MediaType? type;
+  final bool shared;
 
   @override
   Widget build(BuildContext context) {
@@ -315,7 +318,11 @@ class _Empty extends StatelessWidget {
             Icon(searching ? Icons.search_off_rounded : Icons.lock_outline_rounded, size: 56, color: AppColors.textMuted),
             const SizedBox(height: 12),
             Text(
-              searching ? 'No matches' : 'No $what yet. Tap + to add some.',
+              searching
+                  ? 'No matches'
+                  : shared
+                  ? 'Nothing shared yet.'
+                  : 'No $what yet. Tap + to add some.',
               textAlign: TextAlign.center,
               style: const TextStyle(color: AppColors.textMuted),
             ),

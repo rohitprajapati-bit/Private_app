@@ -2,6 +2,8 @@ import AVFoundation
 import Flutter
 import ImageIO
 import LocalAuthentication
+import Photos
+import PhotosUI
 import Security
 import UIKit
 import UniformTypeIdentifiers
@@ -13,6 +15,7 @@ final class PlatformChannel: NSObject, FlutterPlugin {
 
   private let keychain = BiometricKeychain()
   private let privacyCover = PrivacyCover()
+  private let galleryPicker = GalleryPicker()
 
   static func register(with registrar: FlutterPluginRegistrar) {
     let channel = FlutterMethodChannel(name: name, binaryMessenger: registrar.messenger())
@@ -60,6 +63,10 @@ final class PlatformChannel: NSObject, FlutterPlugin {
         let jpeg = MediaThumbnailer.transcodeToJpeg(bytes.data)
         DispatchQueue.main.async { result(jpeg.map { FlutterStandardTypedData(bytes: $0) }) }
       }
+    case "pickMedia":
+      galleryPicker.present(video: args["video"] as? Bool ?? false, completion: result)
+    case "deleteOriginals":
+      GalleryPicker.deleteOriginals(ids: args["ids"] as? [String] ?? [], completion: result)
     case "excludeFromBackup":
       guard let path = args["path"] as? String else {
         result(nil)
@@ -73,6 +80,109 @@ final class PlatformChannel: NSObject, FlutterPlugin {
     default:
       result(FlutterMethodNotImplemented)
     }
+  }
+}
+
+/// PHPicker bound to the photo library so each result carries its PHAsset identifier, which is
+/// what lets the app delete the original after it has been encrypted into the vault. Picking
+/// itself needs no photo permission; only deletion does.
+private final class GalleryPicker: NSObject, PHPickerViewControllerDelegate {
+  private var completion: FlutterResult?
+  private var wantsVideo = false
+
+  func present(video: Bool, completion: @escaping FlutterResult) {
+    guard self.completion == nil, let presenter = Self.topViewController() else {
+      completion(FlutterError(code: "busy", message: nil, details: nil))
+      return
+    }
+    self.completion = completion
+    wantsVideo = video
+    var config = PHPickerConfiguration(photoLibrary: .shared())
+    config.filter = video ? .videos : .images
+    config.selectionLimit = 0
+    config.preferredAssetRepresentationMode = .current  // original bytes, no transcoding
+    let picker = PHPickerViewController(configuration: config)
+    picker.delegate = self
+    presenter.present(picker, animated: true)
+  }
+
+  func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+    picker.dismiss(animated: true)
+    let type: UTType = wantsVideo ? .movie : .image
+    let lock = NSLock()
+    var picked = [Int: [String: Any]]()
+    let group = DispatchGroup()
+    for (index, item) in results.enumerated() {
+      let provider = item.itemProvider
+      let typeId = provider.registeredTypeIdentifiers.first { UTType($0)?.conforms(to: type) == true }
+        ?? type.identifier
+      group.enter()
+      provider.loadFileRepresentation(forTypeIdentifier: typeId) { url, _ in
+        defer { group.leave() }
+        guard let url else { return }
+        // The system deletes `url` when this handler returns, so copy it now. The "picked_"
+        // prefix lets startup clean-up find leftovers after a crash.
+        let ext = url.pathExtension.isEmpty ? (type == .movie ? "mov" : "jpg") : url.pathExtension
+        let dest = FileManager.default.temporaryDirectory
+          .appendingPathComponent("picked_\(UUID().uuidString).\(ext)")
+        guard (try? FileManager.default.copyItem(at: url, to: dest)) != nil else { return }
+        let name = provider.suggestedName ?? url.deletingPathExtension().lastPathComponent
+        lock.lock()
+        picked[index] = ["path": dest.path, "name": name, "sourceId": item.assetIdentifier ?? ""]
+        lock.unlock()
+      }
+    }
+    group.notify(queue: .main) {
+      let completion = self.completion
+      self.completion = nil
+      completion?(picked.keys.sorted().compactMap { picked[$0] })
+    }
+  }
+
+  static func deleteOriginals(ids: [String], completion: @escaping FlutterResult) {
+    guard !ids.isEmpty else {
+      completion(0)
+      return
+    }
+    PHPhotoLibrary.requestAuthorization(for: .readWrite) { status in
+      guard status == .authorized || status == .limited else {
+        DispatchQueue.main.async { completion(FlutterError(code: "denied", message: nil, details: nil)) }
+        return
+      }
+      // With limited access only assets the owner shared with the app are returned.
+      let assets = PHAsset.fetchAssets(withLocalIdentifiers: ids, options: nil)
+      guard assets.count > 0 else {
+        DispatchQueue.main.async {
+          completion(status == .limited ? FlutterError(code: "denied", message: nil, details: nil) : 0)
+        }
+        return
+      }
+      // iOS always shows its own "Allow … to delete N items?" confirmation here.
+      PHPhotoLibrary.shared().performChanges({
+        PHAssetChangeRequest.deleteAssets(assets)
+      }) { success, error in
+        DispatchQueue.main.async {
+          if success {
+            completion(assets.count)
+          } else {
+            let cancelled = (error as NSError?)?.code == PHPhotosError.userCancelled.rawValue
+            completion(FlutterError(code: cancelled ? "cancelled" : "failed", message: nil, details: nil))
+          }
+        }
+      }
+    }
+  }
+
+  private static func topViewController() -> UIViewController? {
+    let window = UIApplication.shared.connectedScenes
+      .compactMap { $0 as? UIWindowScene }
+      .flatMap { $0.windows }
+      .first { $0.isKeyWindow }
+    var top = window?.rootViewController
+    while let presented = top?.presentedViewController {
+      top = presented
+    }
+    return top
   }
 }
 

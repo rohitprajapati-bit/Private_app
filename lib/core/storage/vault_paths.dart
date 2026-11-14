@@ -10,13 +10,13 @@ import 'package:path_provider/path_provider.dart';
 ///   vault/tmp/             in-flight `.part` files and short-lived export copies
 ///   vault/vault.db         SQLite metadata (sensitive fields encrypted)
 class VaultPaths {
-  VaultPaths._(this.root);
+  VaultPaths(this.root);
 
   final Directory root;
 
   static Future<VaultPaths> resolve() async {
     final support = await getApplicationSupportDirectory();
-    return VaultPaths._(Directory(p.join(support.path, 'vault')));
+    return VaultPaths(Directory(p.join(support.path, 'vault')));
   }
 
   Directory get media => Directory(p.join(root.path, 'media'));
@@ -36,6 +36,11 @@ class VaultPaths {
     }
   }
 
+  /// Deletes the whole vault (database, media, thumbnails). Only for data whose key is gone.
+  Future<void> wipe() async {
+    if (await root.exists()) await root.delete(recursive: true);
+  }
+
   /// Removes in-flight and exported plaintext copies. Called at startup and on every lock.
   Future<void> clearTemp() async {
     if (!await temp.exists()) return;
@@ -49,7 +54,7 @@ class VaultPaths {
   }
 
   /// Removes copies the system photo picker left in the app's caches (e.g. after a crash
-  /// mid-import). Android: cache/{uuid}/…  iOS: tmp/image_picker_*.
+  /// mid-import). Android: cache/{uuid}/…  iOS: tmp/picked_*.
   static Future<void> sweepPickerLeftovers() async {
     final uuid = RegExp(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$');
     final dirs = {(await getTemporaryDirectory()).path, Directory.systemTemp.path};
@@ -60,7 +65,7 @@ class VaultPaths {
         final name = p.basename(entity.path);
         final isPickerCopy =
             (Platform.isAndroid && entity is Directory && uuid.hasMatch(name)) ||
-            (Platform.isIOS && name.startsWith('image_picker_'));
+            (Platform.isIOS && name.startsWith('picked_'));
         if (!isPickerCopy) continue;
         try {
           await entity.delete(recursive: true);

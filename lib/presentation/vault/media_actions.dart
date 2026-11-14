@@ -1,26 +1,37 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../../core/errors/failures.dart';
 import '../../core/security/vault_session.dart';
 import '../../domain/entities/media_item.dart';
 import '../../domain/repositories/media_repository.dart';
 import '../../injection.dart';
+import '../../platform/platform_services.dart';
 import 'vault_providers.dart';
 
 /// User-facing flows shared by the gallery grid, albums and viewers.
 abstract final class MediaActions {
   static Future<void> import(BuildContext context, WidgetRef ref, MediaType type, {String? albumId}) async {
     final session = ref.read(sessionProvider);
-    final picker = ImagePicker();
+    final platform = ref.read(platformServicesProvider);
     // The system picker sends the app to the background on Android; don't lock for that.
-    final files = await session.withoutAutoLock(
-      () => type == MediaType.photo ? picker.pickMultiImage(requestFullMetadata: false) : picker.pickMultiVideo(),
-    );
-    if (files.isEmpty || !context.mounted) return;
+    final List<PickedMedia> picked;
+    try {
+      picked = await session.withoutAutoLock(() => platform.pickMedia(video: type == MediaType.video));
+    } on PlatformException {
+      if (context.mounted) _toast(context, 'Could not open the photo picker.');
+      return;
+    }
+    if (picked.isEmpty || !context.mounted) return;
 
-    final stream = ref.read(mediaRepositoryProvider).import(files.map((f) => f.path).toList(), type, albumId: albumId);
+    final stream = ref.read(mediaRepositoryProvider).import(
+      [for (final m in picked) ImportSource(path: m.path, name: m.name)],
+      type,
+      albumId: albumId,
+    );
     final result = await showDialog<ImportProgress>(
       context: context,
       barrierDismissible: false,
@@ -28,12 +39,35 @@ abstract final class MediaActions {
     );
     await ref.read(vaultLibraryProvider.notifier).reload();
     if (!context.mounted || result == null) return;
-    final imported = result.total - result.failed;
+
+    final imported = result.importedPaths.toSet();
     final failed = result.failed > 0 ? ', ${result.failed} failed' : '';
-    _toast(
-      context,
-      'Imported $imported$failed. The originals are still in your Photos app — delete them there if needed.',
-    );
+    if (imported.isEmpty) {
+      _toast(context, 'Nothing was imported$failed.');
+      return;
+    }
+    if (!await ref.read(secureStoreProvider).readRemoveOriginals()) {
+      if (context.mounted) _toast(context, 'Imported ${imported.length}$failed. Originals kept in your gallery.');
+      return;
+    }
+
+    // Only originals that are now safely encrypted in the vault are removed. The OS shows its
+    // own confirmation; iOS moves them to "Recently Deleted", which only the owner can empty.
+    final deletable = [
+      for (final m in picked)
+        if (imported.contains(m.path) && m.sourceId != null) m.sourceId!,
+    ];
+    String message;
+    try {
+      final deleted = await session.withoutAutoLock(() => platform.deleteOriginals(deletable));
+      final kept = imported.length - deleted;
+      message = 'Imported ${imported.length}$failed. Removed $deleted from your gallery'
+          '${kept > 0 ? ' ($kept could not be removed)' : ''}.';
+      if (Platform.isIOS && deleted > 0) message += ' Also empty “Recently Deleted” in Photos.';
+    } on GalleryDeleteFailure catch (e) {
+      message = 'Imported ${imported.length}$failed. ${e.message}';
+    }
+    if (context.mounted) _toast(context, message);
   }
 
   static Future<void> export(BuildContext context, WidgetRef ref, List<MediaItem> items) async {
@@ -100,42 +134,65 @@ abstract final class MediaActions {
     if (choice == newAlbum) {
       final name = await promptName(context, title: 'New album');
       if (name == null) return;
-      albumId = (await ref.read(vaultLibraryProvider.notifier).createAlbum(name)).id;
+      final album = await ref.read(vaultLibraryProvider.notifier).createAlbum(name);
+      if (album == null) return; // vault locked meanwhile
+      albumId = album.id;
     }
     await ref.read(vaultLibraryProvider.notifier).move(items, albumId);
   }
 
-  static Future<String?> promptName(BuildContext context, {required String title, String initial = ''}) {
-    final controller = TextEditingController(text: initial);
-    return showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLength: 60,
-          decoration: const InputDecoration(hintText: 'Album name'),
-          onSubmitted: (v) => Navigator.pop(context, v.trim().isEmpty ? null : v.trim()),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () {
-              final v = controller.text.trim();
-              Navigator.pop(context, v.isEmpty ? null : v);
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    ).whenComplete(controller.dispose);
-  }
+  static Future<String?> promptName(BuildContext context, {required String title, String initial = ''}) =>
+      showDialog<String>(context: context, builder: (context) => _NameDialog(title: title, initial: initial));
 
   static void _toast(BuildContext context, String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+/// Owns its controller so it is disposed only after the dialog's closing animation has
+/// finished; disposing when the result arrives crashes the still-visible text field.
+class _NameDialog extends StatefulWidget {
+  const _NameDialog({required this.title, required this.initial});
+
+  final String title;
+  final String initial;
+
+  @override
+  State<_NameDialog> createState() => _NameDialogState();
+}
+
+class _NameDialogState extends State<_NameDialog> {
+  late final _controller = TextEditingController(text: widget.initial);
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final value = _controller.text.trim();
+    Navigator.pop(context, value.isEmpty ? null : value);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        maxLength: 60,
+        decoration: const InputDecoration(hintText: 'Album name'),
+        onSubmitted: (_) => _submit(),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        TextButton(onPressed: _submit, child: const Text('Save')),
+      ],
+    );
   }
 }
 
@@ -163,6 +220,10 @@ class _ImportDialogState extends State<_ImportDialog> {
       onDone: () {
         if (mounted) Navigator.pop(context, _progress);
       },
+      onError: (Object _) {
+        if (mounted) Navigator.pop(context, _progress);
+      },
+      cancelOnError: true,
     );
   }
 

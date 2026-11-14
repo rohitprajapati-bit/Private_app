@@ -16,6 +16,7 @@ class MediaRecord {
     this.durationMs,
     this.width,
     this.height,
+    this.sharedFrom,
   });
 
   final String id;
@@ -31,6 +32,9 @@ class MediaRecord {
   final int? width;
   final int? height;
 
+  /// Id of the admin device this item was received from; null for the owner's own items.
+  final String? sharedFrom;
+
   Map<String, Object?> toRow() => {
     'id': id,
     'type': type,
@@ -44,6 +48,7 @@ class MediaRecord {
     'duration_ms': durationMs,
     'width': width,
     'height': height,
+    'shared_from': sharedFrom,
   };
 
   factory MediaRecord.fromRow(Map<String, Object?> row) => MediaRecord(
@@ -59,6 +64,7 @@ class MediaRecord {
     durationMs: row['duration_ms'] as int?,
     width: row['width'] as int?,
     height: row['height'] as int?,
+    sharedFrom: row['shared_from'] as String?,
   );
 }
 
