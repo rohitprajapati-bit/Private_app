@@ -1,0 +1,19 @@
+{
+  "name": "colormatch-admin-cli",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Admin tooling for the Color Match remote view-only sharing: register Drive media, manage libraries, codes, devices and audit logs.",
+  "bin": {
+    "vault-admin": "src/index.mjs"
+  },
+  "scripts": {
+    "doctor": "node src/index.mjs doctor",
+    "start": "node src/index.mjs"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "firebase-admin": "^13.0.2",
+    "googleapis": "^144.0.0"
+  }
+}

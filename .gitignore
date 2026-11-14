@@ -43,3 +43,19 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# --- Backend secrets (remote sharing) — never commit these ---
+# Service account keys (any location)
+**/service-account*.json
+**/*serviceAccount*.json
+backend/**/service-account.json
+# Environment & local secrets
+**/.env
+**/.env.*
+!**/.env.example
+**/.dev.vars
+!**/.dev.vars.example
+# Admin OAuth token cache
+backend/admin-cli/.token.json
+# Node deps
+backend/**/node_modules/

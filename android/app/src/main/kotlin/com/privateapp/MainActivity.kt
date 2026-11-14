@@ -1,4 +1,4 @@
-package com.furation.colormatch
+package com.privateapp
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine

@@ -1,0 +1,12 @@
+name = "colormatch-broker"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+# Secrets are NOT stored here. Set them with `wrangler secret put <NAME>` (see backend/README.md):
+#   GCP_PROJECT_ID
+#   GCP_SA_EMAIL
+#   GCP_SA_PRIVATE_KEY
+#
+# After `wrangler deploy`, your broker URL is printed, e.g.
+#   https://colormatch-broker.<your-subdomain>.workers.dev
+# Put that URL in the app (Stage 3) as the broker base URL.

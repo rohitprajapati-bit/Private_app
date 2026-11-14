@@ -76,6 +76,17 @@ class SecureStore {
   Future<void> writeSharing(String key, String? value) =>
       value == null ? _storage.delete(key: key) : _storage.write(key: key, value: value);
 
+  // Remote view-only sharing (online library via access code). The device token is a bearer
+  // secret the broker issued; it belongs in secure storage, not SharedPreferences.
+  static const remoteDeviceId = 'remote.deviceId';
+  static const remoteDeviceToken = 'remote.deviceToken';
+  static const remoteLibraryName = 'remote.libraryName';
+  static const remoteCode = 'remote.code';
+
+  Future<String?> readRemote(String key) => _storage.read(key: key);
+  Future<void> writeRemote(String key, String? value) =>
+      value == null ? _storage.delete(key: key) : _storage.write(key: key, value: value);
+
   /// iOS keeps Keychain items after uninstall; called when the app's files are gone.
   Future<void> deleteAll() => _storage.deleteAll();
 }

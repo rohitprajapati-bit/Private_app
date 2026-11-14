@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/constants/app_constants.dart';
 import '../../core/errors/failures.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/sharing/sharing_protocol.dart';
@@ -116,6 +117,14 @@ class _SharedTabState extends ConsumerState<SharedTab> {
                 icon: const Icon(Icons.share_rounded),
                 label: const Text('Set up sharing'),
               ),
+              if (AppConstants.brokerBaseUrl.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                TextButton.icon(
+                  onPressed: () => context.push(Routes.online),
+                  icon: const Icon(Icons.vpn_key_rounded),
+                  label: const Text('Enter an access code'),
+                ),
+              ],
             ],
           ),
         ),

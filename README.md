@@ -93,7 +93,7 @@ When installing from the phone, allow "Install unknown apps" for your file manag
 3. Open `ios/Runner.xcworkspace` in Xcode → select the **Runner** target → **Signing & Capabilities**:
    - Turn on "Automatically manage signing".
    - **Team:** add your Apple Account (Xcode → Settings → Accounts) and choose your *Personal Team*.
-   - **Bundle Identifier:** if `com.furation.colormatch` is rejected, change it to something unique, e.g. `com.<yourname>.colormatch`.
+   - **Bundle Identifier:** if `com.privateapp` is rejected, change it to something unique, e.g. `com.<yourname>.privateapp`.
 4. Build and install from the terminal:
    ```sh
    flutter run --release -d <your-iphone-id>   # list devices: flutter devices

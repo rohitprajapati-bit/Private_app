@@ -1,4 +1,4 @@
-package com.furation.colormatch
+package com.privateapp
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory

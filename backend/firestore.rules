@@ -1,0 +1,67 @@
+rules_version = '2';
+
+// Firestore security rules for remote view-only sharing.
+//
+// Principals:
+//   - Admin: signed in with Firebase Auth. May read/write ONLY the documents they own.
+//   - User devices: NOT authenticated here at all. They never touch Firestore directly;
+//     they go through the Cloudflare Worker, which uses a service account that bypasses
+//     these rules. So for users, the correct rule is simply "deny".
+//
+// Net effect: unauthenticated clients can do nothing; an admin can only reach their own data.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function owns(ownerUid) {
+      return signedIn() && request.auth.uid == ownerUid;
+    }
+
+    // Keeps an admin from writing a document that claims a different owner.
+    function ownedByMe() {
+      return signedIn() && request.resource.data.ownerUid == request.auth.uid;
+    }
+
+    // config/{adminUid} — one config document per admin, keyed by their uid.
+    match /config/{adminUid} {
+      allow read, write: if signedIn() && request.auth.uid == adminUid;
+    }
+
+    // libraries/{libraryId} and their items.
+    match /libraries/{libraryId} {
+      allow read: if owns(resource.data.ownerUid);
+      allow create: if ownedByMe();
+      allow update, delete: if owns(resource.data.ownerUid);
+
+      match /items/{itemId} {
+        // Item docs don't repeat ownerUid; they inherit the parent library's owner.
+        function libraryOwner() {
+          return get(/databases/$(database)/documents/libraries/$(libraryId)).data.ownerUid;
+        }
+        allow read, write: if owns(libraryOwner());
+      }
+    }
+
+    // codes/{code}
+    match /codes/{code} {
+      allow read: if owns(resource.data.ownerUid);
+      allow create: if ownedByMe();
+      allow update, delete: if owns(resource.data.ownerUid);
+    }
+
+    // devices/{deviceId}
+    // Devices are created and updated by the Worker (service account), not by clients.
+    // Admins may read their own devices and revoke them (an update that sets revoked=true).
+    match /devices/{deviceId} {
+      allow read: if owns(resource.data.ownerUid);
+      allow update: if owns(resource.data.ownerUid);
+      allow create, delete: if false; // only the service account, which bypasses rules
+    }
+
+    // Everything else is denied by default.
+  }
+}

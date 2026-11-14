@@ -1,4 +1,4 @@
-package com.furation.colormatch
+package com.privateapp
 
 import android.view.WindowManager
 import androidx.fragment.app.FragmentActivity

@@ -12,6 +12,8 @@ import 'data/datasources/vault_database.dart';
 import 'data/repositories/auth_repository_impl.dart';
 import 'data/repositories/game_repository_impl.dart';
 import 'data/repositories/media_repository_impl.dart';
+import 'core/constants/app_constants.dart';
+import 'data/remote/broker_client.dart';
 import 'data/sharing/sharing_client.dart';
 import 'data/sharing/sharing_host.dart';
 import 'data/sharing/sharing_protocol.dart';
@@ -88,6 +90,12 @@ final sharingClientProvider = Provider((ref) {
   ref.onDispose(client.dispose);
   return client;
 });
+
+/// Online view-only sharing: this device talks to the broker to redeem a code and stream one
+/// library. Holds no Google/Drive/Firebase credential — only the broker-issued device token.
+final brokerClientProvider = Provider(
+  (ref) => BrokerClient(ref.watch(secureStoreProvider), baseUrl: AppConstants.brokerBaseUrl),
+);
 
 final gameRepositoryProvider = Provider<GameRepository>(
   (ref) => GameRepositoryImpl(ref.watch(sharedPreferencesProvider)),
