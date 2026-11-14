@@ -1,0 +1,225 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../core/theme/app_theme.dart';
+import '../../domain/usecases/password_policy.dart';
+import '../../injection.dart';
+import '../common/password_field.dart';
+import '../common/sequence_recorder.dart';
+
+enum _Step { intro, password, sequence, creating }
+
+/// First launch: password and hidden-entry sequence.
+class SetupScreen extends ConsumerStatefulWidget {
+  const SetupScreen({super.key});
+
+  @override
+  ConsumerState<SetupScreen> createState() => _SetupScreenState();
+}
+
+class _SetupScreenState extends ConsumerState<SetupScreen> {
+  _Step _step = _Step.intro;
+  bool _acknowledged = false;
+  final _password = TextEditingController();
+  final _confirm = TextEditingController();
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _password.addListener(() => setState(() => _error = null));
+    _confirm.addListener(() => setState(() => _error = null));
+  }
+
+  @override
+  void dispose() {
+    _password.dispose();
+    _confirm.dispose();
+    super.dispose();
+  }
+
+  void _submitPassword() {
+    final error = validateNewPassword(_password.text, _confirm.text);
+    setState(() {
+      _error = error;
+      if (error == null) _step = _Step.sequence;
+    });
+  }
+
+  Future<void> _create(List<int> sequence) async {
+    setState(() => _step = _Step.creating);
+    final auth = ref.read(authRepositoryProvider);
+    try {
+      await auth.setup(password: _password.text, secretSequence: sequence);
+      _password.clear();
+      _confirm.clear();
+      if (mounted) _finish();
+    } on Object {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Setup failed. Please try again.';
+        _step = _Step.password;
+      });
+    }
+  }
+
+  /// Lock and hand over to the game; the router leaves /setup once configured.
+  void _finish() {
+    final session = ref.read(sessionProvider);
+    session.lock();
+    session.markConfigured();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 440),
+              child: AnimatedSwitcher(duration: const Duration(milliseconds: 250), child: _buildStep()),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStep() => switch (_step) {
+    _Step.intro => _intro(),
+    _Step.password => _passwordStep(),
+    _Step.sequence => _Card(
+      key: const ValueKey('sequence'),
+      icon: Icons.palette_rounded,
+      title: 'Choose your secret colours',
+      body:
+          'To open your private space later: start a game, tap pause, then tap these colours '
+          'in order on “Tile style”. Nothing else in the app reveals it.',
+      child: SequenceRecorder(onConfirmed: _create),
+    ),
+    _Step.creating => const _Card(
+      key: ValueKey('creating'),
+      icon: Icons.lock_rounded,
+      title: 'Securing…',
+      body: 'Generating keys. This takes a few seconds.',
+      child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()),
+    ),
+  };
+
+  Widget _intro() => _Card(
+    key: const ValueKey('intro'),
+    icon: Icons.shield_rounded,
+    title: 'Set up your private space',
+    body:
+        'Photos and videos you add are encrypted on this device with AES-256. Nothing is uploaded. '
+        'Your password is the only key.',
+    child: Column(
+      children: [
+        CheckboxListTile(
+          contentPadding: EdgeInsets.zero,
+          value: _acknowledged,
+          onChanged: (v) => setState(() => _acknowledged = v ?? false),
+          title: const Text(
+            'I understand a forgotten password cannot be recovered, and uninstalling the app deletes everything inside.',
+            style: TextStyle(fontSize: 14),
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: _acknowledged ? () => setState(() => _step = _Step.password) : null,
+            child: const Text('Continue'),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _passwordStep() => _Card(
+    key: const ValueKey('password'),
+    icon: Icons.password_rounded,
+    title: 'Create a password',
+    body: 'At least 8 characters. A longer passphrase is stronger.',
+    child: Column(
+      children: [
+        PasswordField(controller: _password, label: 'Password', autofocus: true),
+        const SizedBox(height: 8),
+        PasswordStrengthBar(password: _password.text),
+        const SizedBox(height: 12),
+        PasswordField(
+          controller: _confirm,
+          label: 'Confirm password',
+          textInputAction: TextInputAction.done,
+          onSubmitted: (_) => _submitPassword(),
+        ),
+        if (_confirm.text.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          _PasswordMatchHint(matches: _confirm.text == _password.text),
+        ],
+        if (_error != null) ...[
+          const SizedBox(height: 12),
+          Text(_error!, style: const TextStyle(color: AppColors.danger)),
+        ],
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: validateNewPassword(_password.text, _confirm.text) == null ? _submitPassword : null,
+            child: const Text('Next'),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _PasswordMatchHint extends StatelessWidget {
+  const _PasswordMatchHint({required this.matches});
+
+  final bool matches;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = matches ? AppColors.success : AppColors.danger;
+    return Row(
+      children: [
+        Icon(matches ? Icons.check_circle_rounded : Icons.cancel_rounded, size: 16, color: color),
+        const SizedBox(width: 6),
+        Text(matches ? 'Passwords match' : 'Passwords do not match', style: TextStyle(color: color, fontSize: 12)),
+      ],
+    );
+  }
+}
+
+class _Card extends StatelessWidget {
+  const _Card({super.key, required this.icon, required this.title, required this.body, required this.child});
+
+  final IconData icon;
+  final String title;
+  final String body;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 48, color: Theme.of(context).colorScheme.primary),
+            const SizedBox(height: 12),
+            Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 8),
+            Text(body, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textMuted)),
+            const SizedBox(height: 20),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+}
