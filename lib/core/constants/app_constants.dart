@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 abstract final class AppConstants {
-  static const appName = 'Color Match';
+  static const appName = 'Color Match Puzzle';
 
   /// Base URL of the deployed Cloudflare Worker broker that serves online (code-based)
   /// view-only libraries, e.g. https://colormatch-broker.yourname.workers.dev

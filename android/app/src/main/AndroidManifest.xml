@@ -6,11 +6,12 @@
     <!-- Android requires this for any socket, including the 127.0.0.1-only server that streams
          decrypted video to the player. The app makes no outbound network requests. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
-        android:label="Color Match"
+        android:label="Color Match Puzzle"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="false"

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/errors/failures.dart';
 import '../../core/theme/app_theme.dart';
+import '../../data/sharing/sharing_client.dart';
 import '../../data/sharing/sharing_protocol.dart';
 import '../../injection.dart';
 import '../../routes/app_router.dart';
@@ -27,18 +28,21 @@ class _SharedTabState extends ConsumerState<SharedTab> {
   bool _loaded = false;
   String? _status;
   Timer? _timer;
+  // Read once: `ref` must not be used in dispose().
+  late final SharingClient _client;
 
   @override
   void initState() {
     super.initState();
-    ref.read(sharingClientProvider).addListener(_onClientChanged);
+    _client = ref.read(sharingClientProvider);
+    _client.addListener(_onClientChanged);
     unawaited(_load());
   }
 
   @override
   void dispose() {
     _timer?.cancel();
-    ref.read(sharingClientProvider).removeListener(_onClientChanged);
+    _client.removeListener(_onClientChanged);
     super.dispose();
   }
 
@@ -62,13 +66,15 @@ class _SharedTabState extends ConsumerState<SharedTab> {
   }
 
   Future<void> _sync() async {
-    final client = ref.read(sharingClientProvider);
+    final client = _client;
     if (client.syncing || !ref.read(sessionProvider).isUnlocked) return;
+    // Read before any await: the tab may be gone when the sync finishes.
+    final library = ref.read(vaultLibraryProvider.notifier);
     try {
       // The first listing after unlock runs recovery, which deletes in-flight downloads.
       await ref.read(vaultLibraryProvider.future);
       final result = await client.sync();
-      if (result.added > 0 || result.removed > 0) await ref.read(vaultLibraryProvider.notifier).reload();
+      if (result.added > 0 || result.removed > 0) await library.reload();
       _setStatus(
         result.failed > 0 ? '${result.failed} item(s) could not be received.' : 'Up to date',
       );
@@ -77,7 +83,7 @@ class _SharedTabState extends ConsumerState<SharedTab> {
     } on VaultFailure catch (e) {
       _setStatus(e.message);
       // Access removed: the client already unlinked and deleted everything.
-      await ref.read(vaultLibraryProvider.notifier).reload();
+      await library.reload();
     }
   }
 

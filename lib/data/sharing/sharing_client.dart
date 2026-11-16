@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:bonsoir/bonsoir.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../core/encryption/aead.dart';
@@ -19,13 +18,7 @@ import '../repositories/media_repository_impl.dart';
 import 'sharing_protocol.dart';
 
 /// An admin device found on the local network.
-class DiscoveredAdmin {
-  const DiscoveredAdmin({required this.id, required this.name, required this.endpoint});
-
-  final String id;
-  final String name;
-  final Uri endpoint;
-}
+typedef DiscoveredAdmin = DiscoveredDevice;
 
 /// A pairing request the admin has received; both screens now show [code].
 class PairingAttempt {
@@ -81,54 +74,8 @@ class SharingClient extends ChangeNotifier {
   Future<PairedDevice?> linkedAdmin() => _pairings.admin();
 
   /// Admin devices currently sharing on this network. Ends after [timeout].
-  Stream<DiscoveredAdmin> discover({Duration timeout = const Duration(seconds: 10)}) {
-    final controller = StreamController<DiscoveredAdmin>();
-    final discovery = BonsoirDiscovery(type: sharingServiceType);
-    final seen = <String>{};
-    Timer? timer;
-    Future<void> close() async {
-      timer?.cancel();
-      await discovery.stop().catchError((_) {});
-      if (!controller.isClosed) await controller.close();
-    }
-
-    controller.onListen = () async {
-      try {
-        await discovery.initialize();
-        discovery.eventStream!.listen((event) {
-          switch (event) {
-            case BonsoirDiscoveryServiceFoundEvent():
-              unawaited(event.service.resolve(discovery.serviceResolver));
-            case BonsoirDiscoveryServiceResolvedEvent():
-              final admin = _toAdmin(event.service);
-              if (admin != null && seen.add(admin.id) && !controller.isClosed) controller.add(admin);
-            default:
-              break;
-          }
-        });
-        await discovery.start();
-        timer = Timer(timeout, close);
-      } on Object catch (e) {
-        if (!controller.isClosed) controller.addError(e);
-        await close();
-      }
-    };
-    controller.onCancel = close;
-    return controller.stream;
-  }
-
-  static DiscoveredAdmin? _toAdmin(BonsoirService service) {
-    final id = service.attributes['id'];
-    if (id == null) return null;
-    // Prefer IPv4: link-local IPv6 addresses need a zone id that Uri cannot carry.
-    final address = service.hostAddresses.where((a) => !a.contains(':')).firstOrNull ?? service.hostAddress;
-    if (address == null) return null;
-    return DiscoveredAdmin(
-      id: id,
-      name: service.attributes['name'] ?? service.name,
-      endpoint: Uri(scheme: 'http', host: address, port: service.port),
-    );
-  }
+  Stream<DiscoveredAdmin> discover({Duration timeout = const Duration(seconds: 10)}) =>
+      discoverDevices(sharingServiceType, timeout: timeout);
 
   /// Sends this device's half of the key agreement. Both screens then show the same code.
   Future<PairingAttempt> requestPairing(DiscoveredAdmin admin) async {

@@ -13,6 +13,7 @@ import '../presentation/online/online_library_screen.dart';
 import '../presentation/online/online_viewers.dart';
 import '../presentation/settings/game_settings_screen.dart';
 import '../presentation/settings/vault_settings_screen.dart';
+import '../presentation/sharing/quick_share_screen.dart';
 import '../presentation/sharing/sharing_screen.dart';
 import '../presentation/vault/vault_home_screen.dart';
 import '../presentation/video_player/video_player_screen.dart';
@@ -27,6 +28,8 @@ abstract final class Routes {
   static const vaultSettings = '/vault/settings';
   static const sharing = '/vault/sharing';
   static const online = '/vault/online';
+  static const send = '/vault/send';
+  static const receive = '/vault/receive';
 
   static String onlinePhoto(String id) => '/vault/online/photo/$id';
   static String onlineVideo(String id) => '/vault/online/video/$id';
@@ -95,6 +98,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           ..._mediaRoutes(),
           GoRoute(path: 'settings', builder: (context, state) => const VaultSettingsScreen()),
           GoRoute(path: 'sharing', builder: (context, state) => const SharingScreen()),
+          GoRoute(
+            path: 'send',
+            builder: (context, state) => SendScreen(ids: state.extra is List<String> ? state.extra! as List<String> : const []),
+          ),
+          GoRoute(path: 'receive', builder: (context, state) => const ReceiveScreen()),
           GoRoute(
             path: 'online',
             builder: (context, state) => const OnlineLibraryScreen(),
