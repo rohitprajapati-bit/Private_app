@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:bonsoir/bonsoir.dart';
 import 'package:cryptography/cryptography.dart';
 
 import '../../core/encryption/aead.dart';
@@ -10,6 +13,71 @@ import '../../core/utilities/bytes.dart';
 
 /// Bonjour service type both roles use on the local network.
 const sharingServiceType = '_colormatch._tcp';
+
+/// A device found on the local network advertising one of our service types.
+class DiscoveredDevice {
+  const DiscoveredDevice({required this.id, required this.name, required this.endpoint});
+
+  final String id;
+  final String name;
+  final Uri endpoint;
+}
+
+/// Devices advertising [type] on this network. Ends after [timeout].
+Stream<DiscoveredDevice> discoverDevices(String type, {required Duration timeout}) {
+  final controller = StreamController<DiscoveredDevice>();
+  final discovery = BonsoirDiscovery(type: type);
+  final seen = <String>{};
+  Timer? timer;
+  Future<void> close() async {
+    timer?.cancel();
+    await discovery.stop().catchError((_) {});
+    if (!controller.isClosed) await controller.close();
+  }
+
+  controller.onListen = () async {
+    try {
+      await discovery.initialize();
+      discovery.eventStream!.listen((event) {
+        switch (event) {
+          case BonsoirDiscoveryServiceFoundEvent():
+            unawaited(event.service.resolve(discovery.serviceResolver));
+          case BonsoirDiscoveryServiceResolvedEvent():
+            final device = _toDevice(event.service);
+            if (device != null && seen.add(device.id) && !controller.isClosed) controller.add(device);
+          default:
+            break;
+        }
+      });
+      await discovery.start();
+      timer = Timer(timeout, close);
+    } on Object catch (e) {
+      if (!controller.isClosed) controller.addError(e);
+      await close();
+    }
+  };
+  controller.onCancel = close;
+  return controller.stream;
+}
+
+DiscoveredDevice? _toDevice(BonsoirService service) {
+  final id = service.attributes['id'];
+  if (id == null) return null;
+  // Prefer IPv4: link-local IPv6 addresses need a zone id that Uri cannot carry.
+  final address = service.hostAddresses.where((a) => !a.contains(':')).firstOrNull ?? service.hostAddress;
+  if (address == null) return null;
+  return DiscoveredDevice(
+    id: id,
+    name: service.attributes['name'] ?? service.name,
+    endpoint: Uri(scheme: 'http', host: address, port: service.port),
+  );
+}
+
+/// This phone's name as shown to the other device.
+String localDeviceName(String fallback) {
+  final host = Platform.localHostname.replaceAll('.local', '');
+  return host.isEmpty || host == 'localhost' ? fallback : host;
+}
 
 /// A paired device: the admin keeps one per viewer, a viewer keeps one for its admin.
 /// [key] is the 256-bit pair key both sides derived during pairing; it never travels.

@@ -1,0 +1,14 @@
+{
+  "name": "colormatch-broker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cloudflare Worker that serves online view-only libraries from the admin's Google Drive.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^3.90.0"
+  }
+}

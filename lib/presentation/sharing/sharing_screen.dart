@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../core/errors/failures.dart';
 import '../../core/theme/app_theme.dart';
 import '../../data/sharing/sharing_client.dart';
+import '../../data/sharing/sharing_host.dart';
 import '../../data/sharing/sharing_protocol.dart';
 import '../../injection.dart';
+import '../../routes/app_router.dart';
 import '../vault/vault_providers.dart';
 
 class SharingScreen extends ConsumerWidget {
@@ -19,6 +22,10 @@ class SharingScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: const [
+            _QuickShareSection(),
+            SizedBox(height: 24),
+            _GroupLabel('Live view-only sharing'),
+            SizedBox(height: 8),
             _AdminSection(),
             SizedBox(height: 16),
             _ViewerSection(),
@@ -26,14 +33,83 @@ class SharingScreen extends ConsumerWidget {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 8),
               child: Text(
-                'Sharing works over your local Wi-Fi only — nothing is uploaded. The admin phone shares '
-                'while its vault is open; viewers sync when both phones are on the same network. '
-                'Viewers can look at shared items but cannot save, move or delete them.',
+                'Everything here works over your local Wi-Fi only — nothing is uploaded. Live sharing '
+                'runs while the sharing phone\'s vault is open; linked phones sync when both are on the '
+                'same network and can look at items but cannot save, move or delete them.',
                 style: TextStyle(color: AppColors.textMuted, fontSize: 13),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// One-shot transfer: the other phone keeps its own copies. Lives on its own screens; this
+/// card is where people look for it.
+class _QuickShareSection extends StatelessWidget {
+  const _QuickShareSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const _SectionTitle(icon: Icons.swap_horiz_rounded, title: 'Send / Receive files'),
+            const SizedBox(height: 4),
+            const Text(
+              'Give photos and videos to a nearby phone. It keeps its own copy in its hidden vault.',
+              style: TextStyle(color: AppColors.textMuted),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              spacing: 12,
+              children: [
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () => context.push(Routes.send, extra: const <String>[]),
+                    icon: const Icon(Icons.send_rounded),
+                    label: const Text('Send'),
+                  ),
+                ),
+                Expanded(
+                  child: FilledButton.tonalIcon(
+                    onPressed: () => context.push(Routes.receive),
+                    icon: const Icon(Icons.move_to_inbox_rounded),
+                    label: const Text('Receive'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Receiver shows a QR code; sender scans it. Same Wi-Fi, or one phone on the other\'s hotspot.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textMuted, fontSize: 13),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GroupLabel extends StatelessWidget {
+  const _GroupLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Text(
+        text.toUpperCase(),
+        style: const TextStyle(color: AppColors.textMuted, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1),
       ),
     );
   }
@@ -47,10 +123,18 @@ class _AdminSection extends ConsumerStatefulWidget {
 }
 
 class _AdminSectionState extends ConsumerState<_AdminSection> {
+  // Read once: `ref` must not be used in dispose().
+  late final SharingHost _host;
+
+  @override
+  void initState() {
+    super.initState();
+    _host = ref.read(sharingHostProvider);
+  }
+
   @override
   void dispose() {
-    final host = ref.read(sharingHostProvider);
-    if (host.pairingOpen) unawaited(host.closePairing());
+    if (_host.pairingOpen) unawaited(_host.closePairing());
     super.dispose();
   }
 
@@ -67,14 +151,23 @@ class _AdminSectionState extends ConsumerState<_AdminSection> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Remove ${viewer.name}?'),
-        content: const Text('Items already shared are deleted from that device the next time it syncs.'),
+        content: const Text(
+          'Items already shared are deleted from that device the next time it syncs.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Remove')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remove'),
+          ),
         ],
       ),
     );
-    if (confirmed == true) await ref.read(sharingHostProvider).removeViewer(viewer.id);
+    if (confirmed == true)
+      await ref.read(sharingHostProvider).removeViewer(viewer.id);
   }
 
   @override
@@ -90,10 +183,13 @@ class _AdminSectionState extends ConsumerState<_AdminSection> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const _SectionTitle(icon: Icons.admin_panel_settings_rounded, title: 'Share this vault (admin)'),
+                const _SectionTitle(
+                  icon: Icons.admin_panel_settings_rounded,
+                  title: 'Let another phone view yours',
+                ),
                 const SizedBox(height: 4),
                 const Text(
-                  'Devices you add see your photos and videos, view-only.',
+                  'Linked phones see your photos and videos live, view-only. Remove them anytime.',
                   style: TextStyle(color: AppColors.textMuted),
                 ),
                 for (final viewer in host.viewers)
@@ -101,10 +197,15 @@ class _AdminSectionState extends ConsumerState<_AdminSection> {
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.phone_iphone_rounded),
                     title: Text(viewer.name),
-                    subtitle: Text(host.isRunning ? 'Can view · sharing now' : 'Can view'),
+                    subtitle: Text(
+                      host.isRunning ? 'Can view · sharing now' : 'Can view',
+                    ),
                     trailing: IconButton(
                       tooltip: 'Remove access',
-                      icon: const Icon(Icons.person_remove_rounded, color: AppColors.danger),
+                      icon: const Icon(
+                        Icons.person_remove_rounded,
+                        color: AppColors.danger,
+                      ),
                       onPressed: () => _remove(viewer),
                     ),
                   ),
@@ -115,8 +216,14 @@ class _AdminSectionState extends ConsumerState<_AdminSection> {
                     code: pending.code,
                     hint: 'Allow only if the other phone shows the same code.',
                     actions: [
-                      TextButton(onPressed: host.deny, child: const Text('Deny')),
-                      FilledButton(onPressed: host.approve, child: const Text('Allow')),
+                      TextButton(
+                        onPressed: host.deny,
+                        child: const Text('Deny'),
+                      ),
+                      FilledButton(
+                        onPressed: host.approve,
+                        child: const Text('Allow'),
+                      ),
                     ],
                   )
                 else if (host.pairingOpen)
@@ -125,10 +232,13 @@ class _AdminSectionState extends ConsumerState<_AdminSection> {
                       const LinearProgressIndicator(),
                       const SizedBox(height: 12),
                       const Text(
-                        'Waiting for a viewer… On the other phone open Private → Shared → Connect to admin.',
+                        'Waiting… On the other phone open Sharing → Connect to admin device.',
                         textAlign: TextAlign.center,
                       ),
-                      TextButton(onPressed: host.closePairing, child: const Text('Stop')),
+                      TextButton(
+                        onPressed: host.closePairing,
+                        child: const Text('Stop'),
+                      ),
                     ],
                   )
                 else
@@ -192,7 +302,9 @@ class _ViewerSectionState extends ConsumerState<_ViewerSection> {
           onError: (_) => _fail('Could not search the local network.'),
           onDone: () {
             if (mounted && _step == _ViewerStep.searching && _found.isEmpty) {
-              _fail('No admin device found. On the admin phone tap "Add a viewer device".');
+              _fail(
+                'No admin device found. On the admin phone tap "Add a viewer device".',
+              );
             }
           },
         );
@@ -201,7 +313,9 @@ class _ViewerSectionState extends ConsumerState<_ViewerSection> {
   Future<void> _pair(DiscoveredAdmin admin) async {
     await _search?.cancel();
     try {
-      final attempt = await ref.read(sharingClientProvider).requestPairing(admin);
+      final attempt = await ref
+          .read(sharingClientProvider)
+          .requestPairing(admin);
       setState(() {
         _attempt = attempt;
         _step = _ViewerStep.confirming;
@@ -216,14 +330,19 @@ class _ViewerSectionState extends ConsumerState<_ViewerSection> {
     if (attempt == null) return;
     setState(() => _step = _ViewerStep.waiting);
     try {
-      final approved = await ref.read(sharingClientProvider).waitForApproval(attempt);
+      final approved = await ref
+          .read(sharingClientProvider)
+          .waitForApproval(attempt);
       if (!mounted) return;
       if (!approved) return _fail('The admin device did not allow this phone.');
       setState(() {
         _admin = attempt.admin;
         _step = _ViewerStep.idle;
       });
-      _toast(context, 'Linked to ${attempt.admin.name}. Shared items appear in the Shared tab.');
+      _toast(
+        context,
+        'Linked to ${attempt.admin.name}. Shared items appear in the Shared tab.',
+      );
       unawaited(_syncNow());
     } on VaultFailure catch (e) {
       _fail(e.message);
@@ -231,9 +350,11 @@ class _ViewerSectionState extends ConsumerState<_ViewerSection> {
   }
 
   Future<void> _syncNow() async {
+    // Read before any await: this screen may be closed when the sync finishes.
+    final library = ref.read(vaultLibraryProvider.notifier);
     try {
       await ref.read(sharingClientProvider).sync();
-      await ref.read(vaultLibraryProvider.notifier).reload();
+      await library.reload();
     } on VaultFailure {
       // The Shared tab shows sync status and retries.
     }
@@ -244,16 +365,25 @@ class _ViewerSectionState extends ConsumerState<_ViewerSection> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Unlink admin device?'),
-        content: const Text('Everything received from it is deleted from this phone.'),
+        content: const Text(
+          'Everything received from it is deleted from this phone.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Unlink')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Unlink'),
+          ),
         ],
       ),
     );
     if (confirmed != true) return;
+    final library = ref.read(vaultLibraryProvider.notifier);
     await ref.read(sharingClientProvider).unlink();
-    await ref.read(vaultLibraryProvider.notifier).reload();
+    await library.reload();
     if (mounted) setState(() => _admin = null);
   }
 
@@ -275,10 +405,13 @@ class _ViewerSectionState extends ConsumerState<_ViewerSection> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const _SectionTitle(icon: Icons.visibility_rounded, title: 'View an admin\'s vault'),
+            const _SectionTitle(
+              icon: Icons.visibility_rounded,
+              title: 'View another phone\'s vault',
+            ),
             const SizedBox(height: 4),
             const Text(
-              'Receive another phone\'s photos and videos here, view-only.',
+              'See a linked phone\'s photos and videos in your Shared tab, view-only.',
               style: TextStyle(color: AppColors.textMuted),
             ),
             const SizedBox(height: 12),
@@ -288,7 +421,10 @@ class _ViewerSectionState extends ConsumerState<_ViewerSection> {
                 leading: const Icon(Icons.link_rounded),
                 title: Text(admin.name),
                 subtitle: const Text('Linked admin'),
-                trailing: TextButton(onPressed: _unlink, child: const Text('Unlink')),
+                trailing: TextButton(
+                  onPressed: _unlink,
+                  child: const Text('Unlink'),
+                ),
               )
             else
               switch (_step) {
@@ -302,7 +438,10 @@ class _ViewerSectionState extends ConsumerState<_ViewerSection> {
                   children: [
                     const LinearProgressIndicator(),
                     const SizedBox(height: 8),
-                    const Text('Searching this Wi-Fi…', textAlign: TextAlign.center),
+                    const Text(
+                      'Searching this Wi-Fi…',
+                      textAlign: TextAlign.center,
+                    ),
                     for (final found in _found)
                       ListTile(
                         contentPadding: EdgeInsets.zero,
@@ -318,15 +457,27 @@ class _ViewerSectionState extends ConsumerState<_ViewerSection> {
                   code: _attempt!.code,
                   hint: 'Check the admin phone shows this exact code.',
                   actions: [
-                    TextButton(onPressed: () => _fail('Pairing cancelled.'), child: const Text('Cancel')),
-                    FilledButton(onPressed: _confirm, child: const Text('Codes match')),
+                    TextButton(
+                      onPressed: () => _fail('Pairing cancelled.'),
+                      child: const Text('Cancel'),
+                    ),
+                    FilledButton(
+                      onPressed: _confirm,
+                      child: const Text('Codes match'),
+                    ),
                   ],
                 ),
                 _ViewerStep.waiting => _CodeBox(
                   title: 'Waiting for the admin to allow…',
                   code: _attempt!.code,
                   hint: 'Tap "Allow" on the admin phone.',
-                  actions: const [SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2.5))],
+                  actions: const [
+                    SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    ),
+                  ],
                 ),
               },
           ],
@@ -348,14 +499,24 @@ class _SectionTitle extends StatelessWidget {
       children: [
         Icon(icon, color: Theme.of(context).colorScheme.primary),
         const SizedBox(width: 8),
-        Expanded(child: Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+          ),
+        ),
       ],
     );
   }
 }
 
 class _CodeBox extends StatelessWidget {
-  const _CodeBox({required this.title, required this.code, required this.hint, required this.actions});
+  const _CodeBox({
+    required this.title,
+    required this.code,
+    required this.hint,
+    required this.actions,
+  });
 
   final String title;
   final String code;
@@ -366,24 +527,44 @@ class _CodeBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: AppColors.surfaceHigh, borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceHigh,
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Column(
         children: [
-          Text(title, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w700)),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
           const SizedBox(height: 12),
           Text(
             '${code.substring(0, 3)} ${code.substring(3)}',
-            style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w800, letterSpacing: 4),
+            style: const TextStyle(
+              fontSize: 34,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 4,
+            ),
           ),
           const SizedBox(height: 8),
-          Text(hint, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textMuted)),
+          Text(
+            hint,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.textMuted),
+          ),
           const SizedBox(height: 12),
-          Row(mainAxisAlignment: MainAxisAlignment.end, spacing: 8, children: actions),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            spacing: 8,
+            children: actions,
+          ),
         ],
       ),
     );
   }
 }
 
-void _toast(BuildContext context, String message) =>
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+void _toast(BuildContext context, String message) => ScaffoldMessenger.of(
+  context,
+).showSnackBar(SnackBar(content: Text(message)));

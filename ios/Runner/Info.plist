@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Color Match</string>
+	<string>Color Match Puzzle</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -34,9 +34,12 @@
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_colormatch._tcp</string>
+		<string>_cmsend._tcp</string>
 	</array>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Finds your other phone on this Wi-Fi to share items between them.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Scan the code on your other phone to send items to it.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Use Face ID to unlock quickly.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>

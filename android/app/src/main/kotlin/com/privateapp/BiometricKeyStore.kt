@@ -1,4 +1,4 @@
-package com.furation.colormatch
+package com.privateapp
 
 import android.content.Context
 import android.os.Build

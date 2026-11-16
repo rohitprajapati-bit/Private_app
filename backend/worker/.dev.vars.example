@@ -1,0 +1,5 @@
+# Local-only secrets for `wrangler dev` (git-ignored as .dev.vars). For production use
+# `wrangler secret put <NAME>` instead — see backend/README.md.
+GCP_PROJECT_ID="your-project-id"
+GCP_SA_EMAIL="svc@your-project-id.iam.gserviceaccount.com"
+GCP_SA_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"

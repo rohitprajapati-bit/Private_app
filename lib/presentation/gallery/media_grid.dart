@@ -99,6 +99,10 @@ class _MediaGridState extends ConsumerState<MediaGrid> {
                   await MediaActions.export(context, ref, selectedItems);
                   setState(_selected.clear);
                 },
+                onSend: () {
+                  context.push(Routes.send, extra: [for (final i in selectedItems) i.id]);
+                  setState(_selected.clear);
+                },
                 onDelete: () async {
                   if (await MediaActions.delete(context, ref, selectedItems)) setState(_selected.clear);
                 },
@@ -260,6 +264,7 @@ class _SelectionBar extends StatelessWidget {
     required this.onSelectAll,
     required this.onMove,
     required this.onExport,
+    required this.onSend,
     required this.onDelete,
   });
 
@@ -268,6 +273,7 @@ class _SelectionBar extends StatelessWidget {
   final VoidCallback onSelectAll;
   final VoidCallback onMove;
   final VoidCallback onExport;
+  final VoidCallback onSend;
   final VoidCallback onDelete;
 
   @override
@@ -280,6 +286,7 @@ class _SelectionBar extends StatelessWidget {
           children: [
             IconButton(tooltip: 'Cancel', onPressed: onClear, icon: const Icon(Icons.close_rounded)),
             Expanded(child: Text('$count selected', style: const TextStyle(fontWeight: FontWeight.w700))),
+            IconButton(tooltip: 'Send to nearby phone', onPressed: onSend, icon: const Icon(Icons.send_rounded)),
             IconButton(tooltip: 'Select all', onPressed: onSelectAll, icon: const Icon(Icons.select_all_rounded)),
             IconButton(tooltip: 'Move to album', onPressed: onMove, icon: const Icon(Icons.drive_file_move_rounded)),
             IconButton(tooltip: 'Save to gallery', onPressed: onExport, icon: const Icon(Icons.download_rounded)),

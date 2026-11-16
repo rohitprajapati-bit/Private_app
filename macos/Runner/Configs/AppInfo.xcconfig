@@ -8,7 +8,7 @@
 PRODUCT_NAME = private_app
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.privateApp
+PRODUCT_BUNDLE_IDENTIFIER = com.privateapp
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.example. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026. All rights reserved.

@@ -45,6 +45,11 @@ class _VaultHomeScreenState extends ConsumerState<VaultHomeScreen> {
           ),
           actions: [
             IconButton(
+              tooltip: 'Receive from nearby phone',
+              icon: const Icon(Icons.move_to_inbox_rounded),
+              onPressed: () => context.push(Routes.receive),
+            ),
+            IconButton(
               tooltip: 'Settings',
               icon: const Icon(Icons.settings_rounded),
               onPressed: () => context.go(Routes.vaultSettings),

@@ -1,7 +1,16 @@
 import 'package:flutter/material.dart';
 
 abstract final class AppConstants {
-  static const appName = 'Color Match';
+  static const appName = 'Color Match Puzzle';
+
+  /// Base URL of the deployed Cloudflare Worker broker that serves online (code-based)
+  /// view-only libraries, e.g. https://colormatch-broker.yourname.workers.dev
+  /// Leave empty to hide the online-library feature. Set per build without editing code:
+  ///   flutter run --dart-define=BROKER_URL=https://colormatch-broker.you.workers.dev
+  static const brokerBaseUrl = String.fromEnvironment('BROKER_URL', defaultValue: '');
+
+  /// How often an open online library pings the broker so the admin dashboard sees it alive.
+  static const remoteHeartbeat = Duration(seconds: 60);
 
   static const minPasswordLength = 8;
   static const secretSequenceMinLength = 4;

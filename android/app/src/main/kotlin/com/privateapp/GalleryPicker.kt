@@ -1,4 +1,4 @@
-package com.furation.colormatch
+package com.privateapp
 
 import android.app.Activity
 import android.net.Uri

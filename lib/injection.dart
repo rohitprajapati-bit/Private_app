@@ -12,6 +12,9 @@ import 'data/datasources/vault_database.dart';
 import 'data/repositories/auth_repository_impl.dart';
 import 'data/repositories/game_repository_impl.dart';
 import 'data/repositories/media_repository_impl.dart';
+import 'core/constants/app_constants.dart';
+import 'data/remote/broker_client.dart';
+import 'data/sharing/quick_share.dart';
 import 'data/sharing/sharing_client.dart';
 import 'data/sharing/sharing_host.dart';
 import 'data/sharing/sharing_protocol.dart';
@@ -88,6 +91,40 @@ final sharingClientProvider = Provider((ref) {
   ref.onDispose(client.dispose);
   return client;
 });
+
+/// Send / Receive: one-shot transfer of the owner's own items to a nearby phone, which keeps
+/// them as its own copies.
+final quickShareReceiverProvider = Provider((ref) {
+  final receiver = QuickShareReceiver(
+    database: ref.watch(vaultDatabaseProvider),
+    keys: ref.watch(keyHierarchyProvider),
+    paths: ref.watch(vaultPathsProvider),
+    session: ref.watch(sessionProvider),
+    pairings: ref.watch(pairingStoreProvider),
+    aead: ref.watch(aeadProvider),
+  );
+  ref.onDispose(receiver.dispose);
+  return receiver;
+});
+
+final quickShareSenderProvider = Provider((ref) {
+  final sender = QuickShareSender(
+    database: ref.watch(vaultDatabaseProvider),
+    keys: ref.watch(keyHierarchyProvider),
+    paths: ref.watch(vaultPathsProvider),
+    session: ref.watch(sessionProvider),
+    pairings: ref.watch(pairingStoreProvider),
+    aead: ref.watch(aeadProvider),
+  );
+  ref.onDispose(sender.dispose);
+  return sender;
+});
+
+/// Online view-only sharing: this device talks to the broker to redeem a code and stream one
+/// library. Holds no Google/Drive/Firebase credential — only the broker-issued device token.
+final brokerClientProvider = Provider(
+  (ref) => BrokerClient(ref.watch(secureStoreProvider), baseUrl: AppConstants.brokerBaseUrl),
+);
 
 final gameRepositoryProvider = Provider<GameRepository>(
   (ref) => GameRepositoryImpl(ref.watch(sharedPreferencesProvider)),
