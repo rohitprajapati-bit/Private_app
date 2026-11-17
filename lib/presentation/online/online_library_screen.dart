@@ -20,7 +20,9 @@ class RemoteSessionState {
 }
 
 final remoteSessionProvider =
-    NotifierProvider<RemoteSessionNotifier, RemoteSessionState>(RemoteSessionNotifier.new);
+    NotifierProvider<RemoteSessionNotifier, RemoteSessionState>(
+      RemoteSessionNotifier.new,
+    );
 
 class RemoteSessionNotifier extends Notifier<RemoteSessionState> {
   @override
@@ -36,7 +38,8 @@ class OnlineLibraryScreen extends ConsumerStatefulWidget {
   const OnlineLibraryScreen({super.key});
 
   @override
-  ConsumerState<OnlineLibraryScreen> createState() => _OnlineLibraryScreenState();
+  ConsumerState<OnlineLibraryScreen> createState() =>
+      _OnlineLibraryScreenState();
 }
 
 class _OnlineLibraryScreenState extends ConsumerState<OnlineLibraryScreen> {
@@ -138,10 +141,18 @@ class _OnlineLibraryScreenState extends ConsumerState<OnlineLibraryScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Remove this library?'),
-        content: const Text('The library is removed from this phone. You can re-enter the code to get it back.'),
+        content: const Text(
+          'The library is removed from this phone. You can re-enter the code to get it back.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Remove')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remove'),
+          ),
         ],
       ),
     );
@@ -162,11 +173,21 @@ class _OnlineLibraryScreenState extends ConsumerState<OnlineLibraryScreen> {
     final library = _library;
     return Scaffold(
       appBar: AppBar(
-        title: Text(library?.name.isNotEmpty == true ? library!.name : 'Online library'),
+        title: Text(
+          library?.name.isNotEmpty == true ? library!.name : 'Online library',
+        ),
         actions: [
           if (library != null) ...[
-            IconButton(tooltip: 'Refresh', icon: const Icon(Icons.sync_rounded), onPressed: _loadLibrary),
-            IconButton(tooltip: 'Remove library', icon: const Icon(Icons.link_off_rounded), onPressed: _forget),
+            IconButton(
+              tooltip: 'Refresh',
+              icon: const Icon(Icons.sync_rounded),
+              onPressed: _loadLibrary,
+            ),
+            IconButton(
+              tooltip: 'Remove library',
+              icon: const Icon(Icons.link_off_rounded),
+              onPressed: _forget,
+            ),
           ],
         ],
       ),
@@ -174,7 +195,10 @@ class _OnlineLibraryScreenState extends ConsumerState<OnlineLibraryScreen> {
         child: _loading
             ? const Center(child: CircularProgressIndicator())
             : !ref.read(brokerClientProvider).isConfigured
-            ? _message(Icons.cloud_off_rounded, 'Online libraries are not enabled in this build.')
+            ? _message(
+                Icons.cloud_off_rounded,
+                'Online libraries are not enabled in this build.',
+              )
             : library == null
             ? _codeEntry()
             : _grid(library),
@@ -190,7 +214,11 @@ class _OnlineLibraryScreenState extends ConsumerState<OnlineLibraryScreen> {
         children: [
           Icon(icon, size: 56, color: AppColors.textMuted),
           const SizedBox(height: 12),
-          Text(text, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textMuted)),
+          Text(
+            text,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.textMuted),
+          ),
         ],
       ),
     ),
@@ -219,19 +247,34 @@ class _OnlineLibraryScreenState extends ConsumerState<OnlineLibraryScreen> {
         autocorrect: false,
         textCapitalization: TextCapitalization.characters,
         textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: 4),
-        decoration: const InputDecoration(hintText: 'CODE', border: OutlineInputBorder()),
+        style: const TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 4,
+        ),
+        decoration: const InputDecoration(
+          hintText: 'CODE',
+          border: OutlineInputBorder(),
+        ),
         onSubmitted: (_) => _redeem(),
       ),
       if (_error != null) ...[
         const SizedBox(height: 12),
-        Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.danger)),
+        Text(
+          _error!,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AppColors.danger),
+        ),
       ],
       const SizedBox(height: 20),
       FilledButton.icon(
         onPressed: _working ? null : _redeem,
         icon: _working
-            ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
             : const Icon(Icons.lock_open_rounded),
         label: Text(_working ? 'Opening…' : 'Open library'),
       ),
@@ -240,7 +283,10 @@ class _OnlineLibraryScreenState extends ConsumerState<OnlineLibraryScreen> {
 
   Widget _grid(RemoteLibrary library) {
     if (library.items.isEmpty) {
-      return _message(Icons.photo_library_outlined, 'This library is empty for now.');
+      return _message(
+        Icons.photo_library_outlined,
+        'This library is empty for now.',
+      );
     }
     return Column(
       children: [
@@ -250,7 +296,9 @@ class _OnlineLibraryScreenState extends ConsumerState<OnlineLibraryScreen> {
             dense: true,
             leading: const Icon(Icons.visibility_rounded),
             title: Text('${library.items.length} item(s) · view only'),
-            subtitle: Text(_error ?? 'You can view these but not save or delete them.'),
+            subtitle: Text(
+              _error ?? 'You can view these but not save or delete them.',
+            ),
           ),
         ),
         Expanded(
@@ -279,7 +327,11 @@ class _OnlineLibraryScreenState extends ConsumerState<OnlineLibraryScreen> {
 }
 
 class _Thumb extends ConsumerWidget {
-  const _Thumb({required this.item, required this.headers, required this.onTap});
+  const _Thumb({
+    required this.item,
+    required this.headers,
+    required this.onTap,
+  });
 
   final RemoteItem item;
   final Map<String, String> headers;
@@ -305,17 +357,37 @@ class _Thumb extends ConsumerWidget {
                 headers: headers,
                 fit: BoxFit.cover,
                 gaplessPlayback: true,
-                loadingBuilder: (context, child, progress) =>
-                    progress == null ? child : const Center(child: Icon(Icons.image_outlined, color: AppColors.textMuted)),
-                errorBuilder: (context, _, _) =>
-                    const Center(child: Icon(Icons.broken_image_outlined, color: AppColors.textMuted)),
+                loadingBuilder: (context, child, progress) => progress == null
+                    ? child
+                    : const Center(
+                        child: Icon(
+                          Icons.image_outlined,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                errorBuilder: (context, _, _) => const Center(
+                  child: Icon(
+                    Icons.broken_image_outlined,
+                    color: AppColors.textMuted,
+                  ),
+                ),
               )
             else
-              const Center(child: Icon(Icons.videocam_rounded, color: AppColors.textMuted, size: 32)),
+              const Center(
+                child: Icon(
+                  Icons.videocam_rounded,
+                  color: AppColors.textMuted,
+                  size: 32,
+                ),
+              ),
             if (item.isVideo)
               const Align(
                 alignment: Alignment.center,
-                child: Icon(Icons.play_circle_fill_rounded, color: Colors.white70, size: 36),
+                child: Icon(
+                  Icons.play_circle_fill_rounded,
+                  color: Colors.white70,
+                  size: 36,
+                ),
               ),
           ],
         ),

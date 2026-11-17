@@ -11,34 +11,49 @@ import '../../domain/repositories/media_repository.dart';
 /// Flutter's image cache is cleared on lock (see app.dart).
 @immutable
 class EncryptedImageProvider extends ImageProvider<EncryptedImageProvider> {
-  const EncryptedImageProvider(this.item, this.repository, {this.thumbnail = false});
+  const EncryptedImageProvider(
+    this.item,
+    this.repository, {
+    this.thumbnail = false,
+  });
 
   final MediaItem item;
   final MediaRepository repository;
   final bool thumbnail;
 
   @override
-  Future<EncryptedImageProvider> obtainKey(ImageConfiguration configuration) => SynchronousFuture(this);
+  Future<EncryptedImageProvider> obtainKey(ImageConfiguration configuration) =>
+      SynchronousFuture(this);
 
   @override
-  ImageStreamCompleter loadImage(EncryptedImageProvider key, ImageDecoderCallback decode) =>
-      MultiFrameImageStreamCompleter(codec: _load(decode), scale: 1);
+  ImageStreamCompleter loadImage(
+    EncryptedImageProvider key,
+    ImageDecoderCallback decode,
+  ) => MultiFrameImageStreamCompleter(codec: _load(decode), scale: 1);
 
   Future<ui.Codec> _load(ImageDecoderCallback decode) async {
-    final bytes = thumbnail ? await repository.thumbnail(item) : await repository.photoBytes(item);
+    final bytes = thumbnail
+        ? await repository.thumbnail(item)
+        : await repository.photoBytes(item);
     return decode(await ui.ImmutableBuffer.fromUint8List(bytes));
   }
 
   @override
   bool operator ==(Object other) =>
-      other is EncryptedImageProvider && other.item.id == item.id && other.thumbnail == thumbnail;
+      other is EncryptedImageProvider &&
+      other.item.id == item.id &&
+      other.thumbnail == thumbnail;
 
   @override
   int get hashCode => Object.hash(item.id, thumbnail);
 }
 
 class EncryptedThumbnail extends StatelessWidget {
-  const EncryptedThumbnail({super.key, required this.item, required this.repository});
+  const EncryptedThumbnail({
+    super.key,
+    required this.item,
+    required this.repository,
+  });
 
   final MediaItem item;
   final MediaRepository repository;

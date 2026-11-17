@@ -26,7 +26,8 @@ class _SequenceRecorderState extends State<SequenceRecorder> {
       _taps.add(index);
     });
     final first = _first;
-    if (first != null && _taps.length == first.length) _checkConfirmation(first);
+    if (first != null && _taps.length == first.length)
+      _checkConfirmation(first);
   }
 
   void _checkConfirmation(List<int> first) {
@@ -54,7 +55,9 @@ class _SequenceRecorderState extends State<SequenceRecorder> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          confirming ? 'Tap the same sequence again' : 'Tap 4–6 colours in order',
+          confirming
+              ? 'Tap the same sequence again'
+              : 'Tap 4–6 colours in order',
           style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
         ),
         const SizedBox(height: 16),
@@ -62,7 +65,11 @@ class _SequenceRecorderState extends State<SequenceRecorder> {
         const SizedBox(height: 8),
         Text(
           _taps.isEmpty ? ' ' : _taps.map((i) => i + 1).join(' · '),
-          style: const TextStyle(color: AppColors.textMuted, fontWeight: FontWeight.w700, letterSpacing: 1),
+          style: const TextStyle(
+            color: AppColors.textMuted,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1,
+          ),
         ),
         const SizedBox(height: 20),
         PaletteKeypad(onTap: _tap, size: 48),
@@ -80,7 +87,9 @@ class _SequenceRecorderState extends State<SequenceRecorder> {
             ),
             if (!confirming)
               FilledButton(
-                onPressed: _taps.length >= AppConstants.secretSequenceMinLength ? _next : null,
+                onPressed: _taps.length >= AppConstants.secretSequenceMinLength
+                    ? _next
+                    : null,
                 child: const Text('Next'),
               ),
           ],

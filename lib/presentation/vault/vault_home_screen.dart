@@ -78,17 +78,33 @@ class _VaultHomeScreenState extends ConsumerState<VaultHomeScreen> {
               )
             : FloatingActionButton(
                 tooltip: _tab == 0 ? 'Add photos' : 'Add videos',
-                onPressed: () => MediaActions.import(context, ref, _tab == 0 ? MediaType.photo : MediaType.video),
+                onPressed: () => MediaActions.import(
+                  context,
+                  ref,
+                  _tab == 0 ? MediaType.photo : MediaType.video,
+                ),
                 child: const Icon(Icons.add_rounded),
               ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: _tab,
           onDestinationSelected: (i) => setState(() => _tab = i),
           destinations: const [
-            NavigationDestination(icon: Icon(Icons.photo_library_rounded), label: 'Photos'),
-            NavigationDestination(icon: Icon(Icons.video_library_rounded), label: 'Videos'),
-            NavigationDestination(icon: Icon(Icons.folder_rounded), label: 'Albums'),
-            NavigationDestination(icon: Icon(Icons.people_alt_rounded), label: 'Shared'),
+            NavigationDestination(
+              icon: Icon(Icons.photo_library_rounded),
+              label: 'Photos',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.video_library_rounded),
+              label: 'Videos',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.folder_rounded),
+              label: 'Albums',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.people_alt_rounded),
+              label: 'Shared',
+            ),
           ],
         ),
       ),

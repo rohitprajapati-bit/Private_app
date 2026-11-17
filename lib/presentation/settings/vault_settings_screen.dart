@@ -17,7 +17,8 @@ class VaultSettingsScreen extends ConsumerStatefulWidget {
   const VaultSettingsScreen({super.key});
 
   @override
-  ConsumerState<VaultSettingsScreen> createState() => _VaultSettingsScreenState();
+  ConsumerState<VaultSettingsScreen> createState() =>
+      _VaultSettingsScreenState();
 }
 
 class _VaultSettingsScreenState extends ConsumerState<VaultSettingsScreen> {
@@ -32,7 +33,9 @@ class _VaultSettingsScreenState extends ConsumerState<VaultSettingsScreen> {
   Future<void> _load() async {
     final auth = ref.read(authRepositoryProvider);
     final autoLock = await auth.autoLockDuration();
-    final removeOriginals = await ref.read(secureStoreProvider).readRemoveOriginals();
+    final removeOriginals = await ref
+        .read(secureStoreProvider)
+        .readRemoveOriginals();
     if (mounted) {
       setState(() {
         _autoLock = autoLock;
@@ -41,11 +44,15 @@ class _VaultSettingsScreenState extends ConsumerState<VaultSettingsScreen> {
     }
   }
 
-  void _toast(String message) =>
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  void _toast(String message) => ScaffoldMessenger.of(
+    context,
+  ).showSnackBar(SnackBar(content: Text(message)));
 
   Future<void> _changePassword() async {
-    final changed = await showDialog<bool>(context: context, builder: (_) => const _ChangePasswordDialog());
+    final changed = await showDialog<bool>(
+      context: context,
+      builder: (_) => const _ChangePasswordDialog(),
+    );
     if (changed == true && mounted) _toast('Password changed.');
   }
 
@@ -55,9 +62,16 @@ class _VaultSettingsScreenState extends ConsumerState<VaultSettingsScreen> {
       builder: (context) => AlertDialog(
         title: const Text('New secret colours'),
         content: SingleChildScrollView(
-          child: SequenceRecorder(onConfirmed: (taps) => Navigator.pop(context, taps)),
+          child: SequenceRecorder(
+            onConfirmed: (taps) => Navigator.pop(context, taps),
+          ),
         ),
-        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel'))],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
       ),
     );
     if (taps == null) return;
@@ -68,7 +82,8 @@ class _VaultSettingsScreenState extends ConsumerState<VaultSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final library = ref.watch(vaultLibraryProvider).value;
-    final totalBytes = library?.items.fold<int>(0, (sum, i) => sum + i.sizeBytes) ?? 0;
+    final totalBytes =
+        library?.items.fold<int>(0, (sum, i) => sum + i.sizeBytes) ?? 0;
     return Scaffold(
       appBar: AppBar(title: const Text('Vault settings')),
       body: SafeArea(
@@ -98,10 +113,14 @@ class _VaultSettingsScreenState extends ConsumerState<VaultSettingsScreen> {
                   SwitchListTile(
                     secondary: const Icon(Icons.delete_sweep_rounded),
                     title: const Text('Remove originals from gallery'),
-                    subtitle: const Text('After import. Your phone asks you to confirm.'),
+                    subtitle: const Text(
+                      'After import. Your phone asks you to confirm.',
+                    ),
                     value: _removeOriginals,
                     onChanged: (v) async {
-                      await ref.read(secureStoreProvider).writeRemoveOriginals(v);
+                      await ref
+                          .read(secureStoreProvider)
+                          .writeRemoveOriginals(v);
                       setState(() => _removeOriginals = v);
                     },
                   ),
@@ -115,12 +134,18 @@ class _VaultSettingsScreenState extends ConsumerState<VaultSettingsScreen> {
                         for (final d in AppConstants.autoLockChoices)
                           DropdownMenuItem(
                             value: d,
-                            child: Text(d.inMinutes >= 1 ? '${d.inMinutes} min' : '${d.inSeconds} s'),
+                            child: Text(
+                              d.inMinutes >= 1
+                                  ? '${d.inMinutes} min'
+                                  : '${d.inSeconds} s',
+                            ),
                           ),
                       ],
                       onChanged: (d) async {
                         if (d == null) return;
-                        await ref.read(authRepositoryProvider).setAutoLockDuration(d);
+                        await ref
+                            .read(authRepositoryProvider)
+                            .setAutoLockDuration(d);
                         setState(() => _autoLock = d);
                       },
                     ),
@@ -133,7 +158,9 @@ class _VaultSettingsScreenState extends ConsumerState<VaultSettingsScreen> {
               child: ListTile(
                 leading: const Icon(Icons.storage_rounded),
                 title: const Text('Storage'),
-                subtitle: Text('${library?.items.length ?? 0} items · ${formatBytes(totalBytes)} encrypted'),
+                subtitle: Text(
+                  '${library?.items.length ?? 0} items · ${formatBytes(totalBytes)} encrypted',
+                ),
               ),
             ),
             const SizedBox(height: 16),
@@ -157,7 +184,8 @@ class _ChangePasswordDialog extends ConsumerStatefulWidget {
   const _ChangePasswordDialog();
 
   @override
-  ConsumerState<_ChangePasswordDialog> createState() => _ChangePasswordDialogState();
+  ConsumerState<_ChangePasswordDialog> createState() =>
+      _ChangePasswordDialogState();
 }
 
 class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
@@ -183,10 +211,17 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
       _error = null;
     });
     try {
-      await ref.read(authRepositoryProvider).changePassword(current: _current.text, next: _next.text);
+      await ref
+          .read(authRepositoryProvider)
+          .changePassword(current: _current.text, next: _next.text);
       if (mounted) Navigator.pop(context, true);
     } on VaultFailure catch (e) {
-      if (mounted) setState(() => _error = e is WrongPassword ? 'Current password is incorrect.' : e.message);
+      if (mounted)
+        setState(
+          () => _error = e is WrongPassword
+              ? 'Current password is incorrect.'
+              : e.message,
+        );
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -200,7 +235,11 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            PasswordField(controller: _current, label: 'Current password', autofocus: true),
+            PasswordField(
+              controller: _current,
+              label: 'Current password',
+              autofocus: true,
+            ),
             const SizedBox(height: 12),
             PasswordField(controller: _next, label: 'New password'),
             const SizedBox(height: 12),
@@ -218,11 +257,18 @@ class _ChangePasswordDialogState extends ConsumerState<_ChangePasswordDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: _busy ? null : () => Navigator.pop(context, false), child: const Text('Cancel')),
+        TextButton(
+          onPressed: _busy ? null : () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
         TextButton(
           onPressed: _busy ? null : _submit,
           child: _busy
-              ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
               : const Text('Change'),
         ),
       ],

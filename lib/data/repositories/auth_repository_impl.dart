@@ -25,7 +25,10 @@ class AuthRepositoryImpl implements AuthRepository {
   final DateTime Function() _clock;
 
   @override
-  Future<void> setup({required String password, required List<int> secretSequence}) async {
+  Future<void> setup({
+    required String password,
+    required List<int> secretSequence,
+  }) async {
     final (material, masterKey) = await _keys.create(password);
     await _store.writeKeyMaterial(material.encode());
     await _store.writeSequence(SecretSequence.create(secretSequence).encode());
@@ -40,9 +43,13 @@ class AuthRepositoryImpl implements AuthRepository {
     if (remaining > Duration.zero) throw LockedOut(remaining);
 
     final encoded = await _store.readKeyMaterial();
-    if (encoded == null) throw const StorageFailure('The vault has not been set up.');
+    if (encoded == null)
+      throw const StorageFailure('The vault has not been set up.');
     try {
-      final masterKey = await _keys.unwrapMasterKey(VaultKeyMaterial.decode(encoded), password);
+      final masterKey = await _keys.unwrapMasterKey(
+        VaultKeyMaterial.decode(encoded),
+        password,
+      );
       await _store.clearFailures();
       _session.unlock(masterKey);
     } on WrongPassword {
@@ -55,10 +62,17 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<void> changePassword({required String current, required String next}) async {
+  Future<void> changePassword({
+    required String current,
+    required String next,
+  }) async {
     final encoded = await _store.readKeyMaterial();
-    if (encoded == null) throw const StorageFailure('The vault has not been set up.');
-    final masterKey = await _keys.unwrapMasterKey(VaultKeyMaterial.decode(encoded), current);
+    if (encoded == null)
+      throw const StorageFailure('The vault has not been set up.');
+    final masterKey = await _keys.unwrapMasterKey(
+      VaultKeyMaterial.decode(encoded),
+      current,
+    );
     try {
       // Only the master-key wrapper changes; media stays valid.
       final material = await _keys.wrapMasterKey(masterKey, next);
@@ -79,7 +93,8 @@ class AuthRepositoryImpl implements AuthRepository {
       _store.writeSequence(SecretSequence.create(taps).encode());
 
   @override
-  Future<Duration> autoLockDuration() async => await _store.readAutoLock() ?? AppConstants.defaultAutoLock;
+  Future<Duration> autoLockDuration() async =>
+      await _store.readAutoLock() ?? AppConstants.defaultAutoLock;
 
   @override
   Future<void> setAutoLockDuration(Duration value) async {

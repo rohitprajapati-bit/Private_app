@@ -14,24 +14,33 @@ import 'vault_providers.dart';
 
 /// User-facing flows shared by the gallery grid, albums and viewers.
 abstract final class MediaActions {
-  static Future<void> import(BuildContext context, WidgetRef ref, MediaType type, {String? albumId}) async {
+  static Future<void> import(
+    BuildContext context,
+    WidgetRef ref,
+    MediaType type, {
+    String? albumId,
+  }) async {
     final session = ref.read(sessionProvider);
     final platform = ref.read(platformServicesProvider);
     // The system picker sends the app to the background on Android; don't lock for that.
     final List<PickedMedia> picked;
     try {
-      picked = await session.withoutAutoLock(() => platform.pickMedia(video: type == MediaType.video));
+      picked = await session.withoutAutoLock(
+        () => platform.pickMedia(video: type == MediaType.video),
+      );
     } on PlatformException {
       if (context.mounted) _toast(context, 'Could not open the photo picker.');
       return;
     }
     if (picked.isEmpty || !context.mounted) return;
 
-    final stream = ref.read(mediaRepositoryProvider).import(
-      [for (final m in picked) ImportSource(path: m.path, name: m.name)],
-      type,
-      albumId: albumId,
-    );
+    final stream = ref
+        .read(mediaRepositoryProvider)
+        .import(
+          [for (final m in picked) ImportSource(path: m.path, name: m.name)],
+          type,
+          albumId: albumId,
+        );
     final result = await showDialog<ImportProgress>(
       context: context,
       barrierDismissible: false,
@@ -47,7 +56,11 @@ abstract final class MediaActions {
       return;
     }
     if (!await ref.read(secureStoreProvider).readRemoveOriginals()) {
-      if (context.mounted) _toast(context, 'Imported ${imported.length}$failed. Originals kept in your gallery.');
+      if (context.mounted)
+        _toast(
+          context,
+          'Imported ${imported.length}$failed. Originals kept in your gallery.',
+        );
       return;
     }
 
@@ -59,36 +72,62 @@ abstract final class MediaActions {
     ];
     String message;
     try {
-      final deleted = await session.withoutAutoLock(() => platform.deleteOriginals(deletable));
+      final deleted = await session.withoutAutoLock(
+        () => platform.deleteOriginals(deletable),
+      );
       final kept = imported.length - deleted;
-      message = 'Imported ${imported.length}$failed. Removed $deleted from your gallery'
+      message =
+          'Imported ${imported.length}$failed. Removed $deleted from your gallery'
           '${kept > 0 ? ' ($kept could not be removed)' : ''}.';
-      if (Platform.isIOS && deleted > 0) message += ' Also empty “Recently Deleted” in Photos.';
+      if (Platform.isIOS && deleted > 0)
+        message += ' Also empty “Recently Deleted” in Photos.';
     } on GalleryDeleteFailure catch (e) {
       message = 'Imported ${imported.length}$failed. ${e.message}';
     }
     if (context.mounted) _toast(context, message);
   }
 
-  static Future<void> export(BuildContext context, WidgetRef ref, List<MediaItem> items) async {
-    _toast(context, 'Saving ${items.length} item${items.length == 1 ? '' : 's'} to your gallery…');
+  static Future<void> export(
+    BuildContext context,
+    WidgetRef ref,
+    List<MediaItem> items,
+  ) async {
+    _toast(
+      context,
+      'Saving ${items.length} item${items.length == 1 ? '' : 's'} to your gallery…',
+    );
     try {
       final saved = await ref.read(mediaRepositoryProvider).export(items);
-      if (context.mounted) _toast(context, 'Saved $saved of ${items.length} to your gallery.');
+      if (context.mounted)
+        _toast(context, 'Saved $saved of ${items.length} to your gallery.');
     } on VaultFailure catch (e) {
       if (context.mounted) _toast(context, e.message);
     }
   }
 
-  static Future<bool> delete(BuildContext context, WidgetRef ref, List<MediaItem> items) async {
+  static Future<bool> delete(
+    BuildContext context,
+    WidgetRef ref,
+    List<MediaItem> items,
+  ) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete ${items.length} item${items.length == 1 ? '' : 's'}?'),
-        content: const Text('They will be permanently erased from the vault. This cannot be undone.'),
+        title: Text(
+          'Delete ${items.length} item${items.length == 1 ? '' : 's'}?',
+        ),
+        content: const Text(
+          'They will be permanently erased from the vault. This cannot be undone.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
         ],
       ),
     );
@@ -97,7 +136,11 @@ abstract final class MediaActions {
     return true;
   }
 
-  static Future<void> moveToAlbum(BuildContext context, WidgetRef ref, List<MediaItem> items) async {
+  static Future<void> moveToAlbum(
+    BuildContext context,
+    WidgetRef ref,
+    List<MediaItem> items,
+  ) async {
     final albums = ref.read(vaultLibraryProvider).value?.albums ?? const [];
     const newAlbum = '\u0000new';
     const noAlbum = '\u0000none';
@@ -108,7 +151,12 @@ abstract final class MediaActions {
         child: ListView(
           shrinkWrap: true,
           children: [
-            const ListTile(title: Text('Move to album', style: TextStyle(fontWeight: FontWeight.w700))),
+            const ListTile(
+              title: Text(
+                'Move to album',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
             ListTile(
               leading: const Icon(Icons.create_new_folder_rounded),
               title: const Text('New album…'),
@@ -134,15 +182,23 @@ abstract final class MediaActions {
     if (choice == newAlbum) {
       final name = await promptName(context, title: 'New album');
       if (name == null) return;
-      final album = await ref.read(vaultLibraryProvider.notifier).createAlbum(name);
+      final album = await ref
+          .read(vaultLibraryProvider.notifier)
+          .createAlbum(name);
       if (album == null) return; // vault locked meanwhile
       albumId = album.id;
     }
     await ref.read(vaultLibraryProvider.notifier).move(items, albumId);
   }
 
-  static Future<String?> promptName(BuildContext context, {required String title, String initial = ''}) =>
-      showDialog<String>(context: context, builder: (context) => _NameDialog(title: title, initial: initial));
+  static Future<String?> promptName(
+    BuildContext context, {
+    required String title,
+    String initial = '',
+  }) => showDialog<String>(
+    context: context,
+    builder: (context) => _NameDialog(title: title, initial: initial),
+  );
 
   static void _toast(BuildContext context, String message) {
     ScaffoldMessenger.of(context)
@@ -189,7 +245,10 @@ class _NameDialogState extends State<_NameDialog> {
         onSubmitted: (_) => _submit(),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
         TextButton(onPressed: _submit, child: const Text('Save')),
       ],
     );
@@ -241,7 +300,10 @@ class _ImportDialogState extends State<_ImportDialog> {
             const SizedBox(height: 12),
             Text(p == null ? 'Preparing…' : '${p.completed} of ${p.total}'),
             const SizedBox(height: 8),
-            const Text('Keep the app open until this finishes.', style: TextStyle(fontSize: 12)),
+            const Text(
+              'Keep the app open until this finishes.',
+              style: TextStyle(fontSize: 12),
+            ),
           ],
         ),
       ),

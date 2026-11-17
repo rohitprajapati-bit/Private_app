@@ -107,7 +107,11 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(Icons.lock_rounded, size: 56, color: Theme.of(context).colorScheme.primary),
+                  Icon(
+                    Icons.lock_rounded,
+                    size: 56,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                   const SizedBox(height: 16),
                   const Text(
                     'Enter password',
@@ -125,7 +129,9 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
                   const SizedBox(height: 12),
                   if (_error != null || locked)
                     Text(
-                      locked ? 'Too many attempts. Try again in ${_lockout.inSeconds}s.' : _error!,
+                      locked
+                          ? 'Too many attempts. Try again in ${_lockout.inSeconds}s.'
+                          : _error!,
                       textAlign: TextAlign.center,
                       style: const TextStyle(color: AppColors.danger),
                     ),
@@ -133,7 +139,11 @@ class _UnlockScreenState extends ConsumerState<UnlockScreen> {
                   FilledButton(
                     onPressed: _busy || locked ? null : _unlockWithPassword,
                     child: _busy
-                        ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
+                        ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2.5),
+                          )
                         : const Text('Unlock'),
                   ),
                 ],

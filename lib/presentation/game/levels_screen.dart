@@ -14,7 +14,9 @@ class LevelsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final highest = ref.watch(gameProgressProvider.select((p) => p.highestLevel));
+    final highest = ref.watch(
+      gameProgressProvider.select((p) => p.highestLevel),
+    );
     final shown = max(30, (highest ~/ 10 + 2) * 10);
     return Scaffold(
       appBar: AppBar(title: const Text('Levels')),
@@ -32,19 +34,40 @@ class LevelsScreen extends ConsumerWidget {
             final unlocked = level <= highest;
             final grid = RoundGenerator.gridSizeFor(level);
             return Material(
-              color: unlocked ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.18) : AppColors.surface,
+              color: unlocked
+                  ? Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: 0.18)
+                  : AppColors.surface,
               borderRadius: BorderRadius.circular(16),
               child: InkWell(
                 borderRadius: BorderRadius.circular(16),
-                onTap: unlocked ? () => context.pushReplacement(Routes.play(level)) : null,
+                onTap: unlocked
+                    ? () => context.pushReplacement(Routes.play(level))
+                    : null,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     unlocked
-                        ? Text('$level', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800))
-                        : const Icon(Icons.lock_rounded, color: AppColors.textMuted),
+                        ? Text(
+                            '$level',
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.lock_rounded,
+                            color: AppColors.textMuted,
+                          ),
                     const SizedBox(height: 2),
-                    Text('$grid×$grid', style: const TextStyle(fontSize: 11, color: AppColors.textMuted)),
+                    Text(
+                      '$grid×$grid',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: AppColors.textMuted,
+                      ),
+                    ),
                   ],
                 ),
               ),

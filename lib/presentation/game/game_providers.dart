@@ -5,7 +5,10 @@ import '../../domain/entities/game_models.dart';
 import '../../injection.dart';
 import 'game_feedback.dart';
 
-final gameSettingsProvider = NotifierProvider<GameSettingsNotifier, GameSettings>(GameSettingsNotifier.new);
+final gameSettingsProvider =
+    NotifierProvider<GameSettingsNotifier, GameSettings>(
+      GameSettingsNotifier.new,
+    );
 
 class GameSettingsNotifier extends Notifier<GameSettings> {
   @override
@@ -17,7 +20,10 @@ class GameSettingsNotifier extends Notifier<GameSettings> {
   }
 }
 
-final gameProgressProvider = NotifierProvider<GameProgressNotifier, GameProgress>(GameProgressNotifier.new);
+final gameProgressProvider =
+    NotifierProvider<GameProgressNotifier, GameProgress>(
+      GameProgressNotifier.new,
+    );
 
 class GameProgressNotifier extends Notifier<GameProgress> {
   @override
@@ -38,6 +44,9 @@ final gameFeedbackProvider = Provider((ref) {
 });
 
 /// Loaded once per game screen; drives the hidden entry in the pause menu.
-final secretSequenceMatcherProvider = FutureProvider.autoDispose<SecretSequenceMatcher>(
-  (ref) async => SecretSequenceMatcher(await ref.watch(authRepositoryProvider).secretSequence()),
-);
+final secretSequenceMatcherProvider =
+    FutureProvider.autoDispose<SecretSequenceMatcher>(
+      (ref) async => SecretSequenceMatcher(
+        await ref.watch(authRepositoryProvider).secretSequence(),
+      ),
+    );

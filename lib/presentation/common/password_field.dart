@@ -42,7 +42,9 @@ class _PasswordFieldState extends State<PasswordField> {
         labelText: widget.label,
         suffixIcon: IconButton(
           tooltip: _obscure ? 'Show' : 'Hide',
-          icon: Icon(_obscure ? Icons.visibility_rounded : Icons.visibility_off_rounded),
+          icon: Icon(
+            _obscure ? Icons.visibility_rounded : Icons.visibility_off_rounded,
+          ),
           onPressed: () => setState(() => _obscure = !_obscure),
         ),
       ),
@@ -77,7 +79,10 @@ class PasswordStrengthBar extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        Text(password.isEmpty ? '' : label, style: TextStyle(color: color, fontSize: 12)),
+        Text(
+          password.isEmpty ? '' : label,
+          style: TextStyle(color: color, fontSize: 12),
+        ),
       ],
     );
   }

@@ -32,7 +32,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       ref.read(gameControllerProvider.notifier).start(widget.startLevel);
     });
     // Pause automatically when the app leaves the foreground.
-    _lifecycle = AppLifecycleListener(onInactive: () => ref.read(gameControllerProvider.notifier).pause());
+    _lifecycle = AppLifecycleListener(
+      onInactive: () => ref.read(gameControllerProvider.notifier).pause(),
+    );
   }
 
   @override
@@ -43,7 +45,10 @@ class _GameScreenState extends ConsumerState<GameScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(gameControllerProvider);
+    // The timer ticks every 100 ms; drop timeLeft so only the HUD rebuilds on a tick.
+    final state = ref.watch(
+      gameControllerProvider.select((s) => s.copyWith(timeLeft: Duration.zero)),
+    );
     final controller = ref.read(gameControllerProvider.notifier);
     // Keep the matcher loaded while this screen is visible.
     ref.watch(secretSequenceMatcherProvider);
@@ -59,11 +64,24 @@ class _GameScreenState extends ConsumerState<GameScreen> {
             children: [
               Column(
                 children: [
-                  _Hud(state: state, onPause: controller.pause),
-                  Expanded(child: _Board(state: state, onTap: controller.tap)),
+                  Consumer(
+                    builder: (context, ref, _) => _Hud(
+                      state: ref.watch(gameControllerProvider),
+                      onPause: controller.pause,
+                    ),
+                  ),
+                  Expanded(
+                    child: RepaintBoundary(
+                      child: _Board(state: state, onTap: controller.tap),
+                    ),
+                  ),
                 ],
               ),
-              if (state.status == GameStatus.paused) _PauseOverlay(onResume: controller.resume, onRestart: controller.restart),
+              if (state.status == GameStatus.paused)
+                _PauseOverlay(
+                  onResume: controller.resume,
+                  onRestart: controller.restart,
+                ),
               if (state.status == GameStatus.levelComplete)
                 _ResultOverlay(
                   title: 'Level ${state.level} complete!',
@@ -74,7 +92,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               if (state.status == GameStatus.gameOver)
                 _ResultOverlay(
                   title: "Time's up",
-                  subtitle: 'Score ${state.score} · Best ${ref.watch(gameProgressProvider).bestScore}',
+                  subtitle:
+                      'Score ${state.score} · Best ${ref.watch(gameProgressProvider).bestScore}',
                   primaryLabel: 'Try again',
                   onPrimary: controller.restart,
                 ),
@@ -96,7 +115,8 @@ class _Hud extends StatelessWidget {
   Widget build(BuildContext context) {
     final fraction = state.levelTime.inMilliseconds == 0
         ? 0.0
-        : (state.timeLeft.inMilliseconds / state.levelTime.inMilliseconds).clamp(0.0, 1.0);
+        : (state.timeLeft.inMilliseconds / state.levelTime.inMilliseconds)
+              .clamp(0.0, 1.0);
     final low = state.timeLeft < const Duration(seconds: 5);
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 8, 8, 4),
@@ -104,17 +124,27 @@ class _Hud extends StatelessWidget {
         children: [
           Row(
             children: [
-              Text('Level ${state.level}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              Text(
+                'Level ${state.level}',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               const Spacer(),
               const Icon(Icons.star_rounded, color: Colors.amber),
               const SizedBox(width: 4),
               AnimatedSwitcher(
                 duration: const Duration(milliseconds: 250),
-                transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
+                transitionBuilder: (child, anim) =>
+                    ScaleTransition(scale: anim, child: child),
                 child: Text(
                   '${state.score}',
                   key: ValueKey(state.score),
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
               IconButton(
@@ -127,7 +157,11 @@ class _Hud extends StatelessWidget {
           const SizedBox(height: 6),
           Row(
             children: [
-              Icon(Icons.timer_rounded, size: 18, color: low ? AppColors.danger : AppColors.textMuted),
+              Icon(
+                Icons.timer_rounded,
+                size: 18,
+                color: low ? AppColors.danger : AppColors.textMuted,
+              ),
               const SizedBox(width: 6),
               Expanded(
                 child: ClipRRect(
@@ -136,14 +170,19 @@ class _Hud extends StatelessWidget {
                     value: fraction,
                     minHeight: 10,
                     backgroundColor: AppColors.surface,
-                    color: low ? AppColors.danger : Theme.of(context).colorScheme.primary,
+                    color: low
+                        ? AppColors.danger
+                        : Theme.of(context).colorScheme.primary,
                   ),
                 ),
               ),
               const SizedBox(width: 8),
               SizedBox(
                 width: 36,
-                child: Text('${state.timeLeft.inSeconds}s', textAlign: TextAlign.end),
+                child: Text(
+                  '${state.timeLeft.inSeconds}s',
+                  textAlign: TextAlign.end,
+                ),
               ),
             ],
           ),
@@ -158,7 +197,9 @@ class _Hud extends StatelessWidget {
                   width: i < state.roundInLevel ? 22 : 10,
                   height: 10,
                   decoration: BoxDecoration(
-                    color: i < state.roundInLevel ? Theme.of(context).colorScheme.primary : AppColors.surfaceHigh,
+                    color: i < state.roundInLevel
+                        ? Theme.of(context).colorScheme.primary
+                        : AppColors.surfaceHigh,
                     borderRadius: BorderRadius.circular(5),
                   ),
                 ),
@@ -184,11 +225,17 @@ class _Board extends StatelessWidget {
       builder: (context, constraints) {
         // Target swatch takes ~22% of the height; the grid stays square and fits the rest.
         final targetSize = min(constraints.maxHeight * 0.22, 120.0);
-        final boardSize = min(constraints.maxWidth - 32, constraints.maxHeight - targetSize - 56);
+        final boardSize = min(
+          constraints.maxWidth - 32,
+          constraints.maxHeight - targetSize - 56,
+        );
         return Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('Match this colour', style: TextStyle(color: AppColors.textMuted)),
+            const Text(
+              'Match this colour',
+              style: TextStyle(color: AppColors.textMuted),
+            ),
             const SizedBox(height: 8),
             AnimatedContainer(
               duration: const Duration(milliseconds: 300),
@@ -198,7 +245,12 @@ class _Board extends StatelessWidget {
                 color: round.target,
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(color: Colors.white, width: 3),
-                boxShadow: [BoxShadow(color: round.target.withValues(alpha: 0.5), blurRadius: 24)],
+                boxShadow: [
+                  BoxShadow(
+                    color: round.target.withValues(alpha: 0.5),
+                    blurRadius: 24,
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 20),
@@ -232,7 +284,12 @@ class _Board extends StatelessWidget {
 }
 
 class _Tile extends StatefulWidget {
-  const _Tile({super.key, required this.color, required this.wrong, required this.onTap});
+  const _Tile({
+    super.key,
+    required this.color,
+    required this.wrong,
+    required this.onTap,
+  });
 
   final Color color;
   final bool wrong;
@@ -258,15 +315,20 @@ class _TileState extends State<_Tile> {
         tween: Tween(begin: 0.6, end: 1),
         duration: const Duration(milliseconds: 260),
         curve: Curves.easeOutBack,
-        builder: (context, scale, child) => Transform.scale(scale: _pressed ? 0.9 : scale, child: child),
+        builder: (context, scale, child) =>
+            Transform.scale(scale: _pressed ? 0.9 : scale, child: child),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           decoration: BoxDecoration(
             color: widget.color,
             borderRadius: BorderRadius.circular(12),
-            border: widget.wrong ? Border.all(color: Colors.white, width: 3) : null,
+            border: widget.wrong
+                ? Border.all(color: Colors.white, width: 3)
+                : null,
           ),
-          child: widget.wrong ? const Icon(Icons.close_rounded, color: Colors.white) : null,
+          child: widget.wrong
+              ? const Icon(Icons.close_rounded, color: Colors.white)
+              : null,
         ),
       ),
     );
@@ -286,8 +348,10 @@ class _Shake extends StatelessWidget {
       key: ValueKey(trigger),
       tween: Tween(begin: trigger == 0 ? 1 : 0, end: 1),
       duration: const Duration(milliseconds: 400),
-      builder: (context, t, child) =>
-          Transform.translate(offset: Offset(sin(t * pi * 6) * 10 * (1 - t), 0), child: child),
+      builder: (context, t, child) => Transform.translate(
+        offset: Offset(sin(t * pi * 6) * 10 * (1 - t), 0),
+        child: child,
+      ),
       child: child,
     );
   }
@@ -303,7 +367,9 @@ class _PauseOverlay extends ConsumerWidget {
 
   void _onPaletteTap(BuildContext context, WidgetRef ref, int index) {
     final settings = ref.read(gameSettingsProvider);
-    ref.read(gameSettingsProvider.notifier).update(settings.copyWith(paletteIndex: index));
+    ref
+        .read(gameSettingsProvider.notifier)
+        .update(settings.copyWith(paletteIndex: index));
     ref.read(gameFeedbackProvider).play(GameSound.tap, settings);
 
     final matcher = ref.read(secretSequenceMatcherProvider).value;
@@ -315,23 +381,48 @@ class _PauseOverlay extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final paletteIndex = ref.watch(gameSettingsProvider.select((s) => s.paletteIndex));
+    final paletteIndex = ref.watch(
+      gameSettingsProvider.select((s) => s.paletteIndex),
+    );
     return _Dim(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('Paused', textAlign: TextAlign.center, style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
+          const Text(
+            'Paused',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 20),
-          FilledButton.icon(onPressed: onResume, icon: const Icon(Icons.play_arrow_rounded), label: const Text('Resume')),
+          FilledButton.icon(
+            onPressed: onResume,
+            icon: const Icon(Icons.play_arrow_rounded),
+            label: const Text('Resume'),
+          ),
           const SizedBox(height: 10),
-          OutlinedButton.icon(onPressed: onRestart, icon: const Icon(Icons.replay_rounded), label: const Text('Restart level')),
+          OutlinedButton.icon(
+            onPressed: onRestart,
+            icon: const Icon(Icons.replay_rounded),
+            label: const Text('Restart level'),
+          ),
           const SizedBox(height: 10),
-          TextButton.icon(onPressed: () => context.pop(), icon: const Icon(Icons.home_rounded), label: const Text('Quit to menu')),
+          TextButton.icon(
+            onPressed: () => context.pop(),
+            icon: const Icon(Icons.home_rounded),
+            label: const Text('Quit to menu'),
+          ),
           const SizedBox(height: 20),
-          const Text('Tile style', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted)),
+          const Text(
+            'Tile style',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.textMuted),
+          ),
           const SizedBox(height: 12),
-          PaletteKeypad(selected: paletteIndex, onTap: (i) => _onPaletteTap(context, ref, i)),
+          PaletteKeypad(
+            selected: paletteIndex,
+            onTap: (i) => _onPaletteTap(context, ref, i),
+          ),
         ],
       ),
     );
@@ -339,7 +430,12 @@ class _PauseOverlay extends ConsumerWidget {
 }
 
 class _ResultOverlay extends StatelessWidget {
-  const _ResultOverlay({required this.title, required this.subtitle, required this.primaryLabel, required this.onPrimary});
+  const _ResultOverlay({
+    required this.title,
+    required this.subtitle,
+    required this.primaryLabel,
+    required this.onPrimary,
+  });
 
   final String title;
   final String subtitle;
@@ -357,11 +453,20 @@ class _ResultOverlay extends StatelessWidget {
             tween: Tween(begin: 0.5, end: 1),
             duration: const Duration(milliseconds: 450),
             curve: Curves.elasticOut,
-            builder: (context, s, child) => Transform.scale(scale: s, child: child),
-            child: Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900)),
+            builder: (context, s, child) =>
+                Transform.scale(scale: s, child: child),
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
+            ),
           ),
           const SizedBox(height: 8),
-          Text(subtitle, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textMuted, fontSize: 16)),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: AppColors.textMuted, fontSize: 16),
+          ),
           const SizedBox(height: 24),
           FilledButton(onPressed: onPrimary, child: Text(primaryLabel)),
           const SizedBox(height: 10),

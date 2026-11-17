@@ -11,45 +11,50 @@ class PaletteKeypad extends StatelessWidget {
   final int? selected;
   final double size;
 
+  static const _perRow = 5;
+  static const _spacing = 12.0;
+
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: 12,
-      runSpacing: 12,
-      children: [
-        for (var i = 0; i < AppConstants.palette.length; i++)
-          Semantics(
-            button: true,
-            label: 'Style ${i + 1}',
-            child: GestureDetector(
-              onTap: () => onTap(i),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                width: size,
-                height: size,
-                decoration: BoxDecoration(
-                  color: AppConstants.palette[i],
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: selected == i ? 3 : 0),
-                  boxShadow: [
-                    BoxShadow(color: AppConstants.palette[i].withValues(alpha: 0.45), blurRadius: 10),
-                  ],
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  '${i + 1}',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: size * 0.4,
-                    fontWeight: FontWeight.w800,
-                    shadows: const [Shadow(color: Colors.black54, blurRadius: 4)],
+    // Cap the width so the swatches form even rows of five instead of wrapping unevenly.
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: _perRow * size + (_perRow - 1) * _spacing),
+      child: Wrap(
+        alignment: WrapAlignment.center,
+        spacing: _spacing,
+        runSpacing: _spacing,
+        children: [
+          for (var i = 0; i < AppConstants.palette.length; i++)
+            Semantics(
+              button: true,
+              label: 'Style $i',
+              child: GestureDetector(
+                onTap: () => onTap(i),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  width: size,
+                  height: size,
+                  decoration: BoxDecoration(
+                    color: AppConstants.palette[i],
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: selected == i ? 3 : 0),
+                    boxShadow: [BoxShadow(color: AppConstants.palette[i].withValues(alpha: 0.45), blurRadius: 10)],
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '$i',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: size * 0.4,
+                      fontWeight: FontWeight.w800,
+                      shadows: const [Shadow(color: Colors.black54, blurRadius: 4)],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }

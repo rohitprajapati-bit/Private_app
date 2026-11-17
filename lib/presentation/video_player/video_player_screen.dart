@@ -75,7 +75,8 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
   void _scheduleHide() {
     _hideTimer?.cancel();
     _hideTimer = Timer(const Duration(seconds: 3), () {
-      if (mounted && (_controller?.value.isPlaying ?? false)) setState(() => _controls = false);
+      if (mounted && (_controller?.value.isPlaying ?? false))
+        setState(() => _controls = false);
     });
   }
 
@@ -131,12 +132,14 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                     IconButton(
                       tooltip: 'Save to gallery',
                       icon: const Icon(Icons.download_rounded),
-                      onPressed: () => MediaActions.export(context, ref, [item]),
+                      onPressed: () =>
+                          MediaActions.export(context, ref, [item]),
                     ),
                     IconButton(
                       tooltip: 'Move to album',
                       icon: const Icon(Icons.drive_file_move_rounded),
-                      onPressed: () => MediaActions.moveToAlbum(context, ref, [item]),
+                      onPressed: () =>
+                          MediaActions.moveToAlbum(context, ref, [item]),
                     ),
                     IconButton(
                       tooltip: 'Delete',
@@ -144,7 +147,9 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                       onPressed: () async {
                         await _controller?.pause();
                         if (!context.mounted) return;
-                        if (await MediaActions.delete(context, ref, [item]) && context.mounted) context.pop();
+                        if (await MediaActions.delete(context, ref, [item]) &&
+                            context.mounted)
+                          context.pop();
                       },
                     ),
                   ],
@@ -154,7 +159,12 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
           top: !_fullscreen,
           bottom: !_fullscreen,
           child: _failed
-              ? const Center(child: Text('This video could not be played.', style: TextStyle(color: Colors.white70)))
+              ? const Center(
+                  child: Text(
+                    'This video could not be played.',
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                )
               : controller == null
               ? const Center(child: CircularProgressIndicator())
               : GestureDetector(
@@ -167,11 +177,19 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
                     children: [
                       Center(
                         child: AspectRatio(
-                          aspectRatio: controller.value.aspectRatio == 0 ? 16 / 9 : controller.value.aspectRatio,
+                          aspectRatio: controller.value.aspectRatio == 0
+                              ? 16 / 9
+                              : controller.value.aspectRatio,
                           child: VideoPlayer(controller),
                         ),
                       ),
-                      if (_controls) _Controls(controller: controller, fullscreen: _fullscreen, onFullscreen: _toggleFullscreen, onInteract: _scheduleHide),
+                      if (_controls)
+                        _Controls(
+                          controller: controller,
+                          fullscreen: _fullscreen,
+                          onFullscreen: _toggleFullscreen,
+                          onInteract: _scheduleHide,
+                        ),
                     ],
                   ),
                 ),
@@ -182,7 +200,12 @@ class _VideoPlayerScreenState extends ConsumerState<VideoPlayerScreen> {
 }
 
 class _Controls extends StatelessWidget {
-  const _Controls({required this.controller, required this.fullscreen, required this.onFullscreen, required this.onInteract});
+  const _Controls({
+    required this.controller,
+    required this.fullscreen,
+    required this.onFullscreen,
+    required this.onInteract,
+  });
 
   final VideoPlayerController controller;
   final bool fullscreen;
@@ -203,7 +226,11 @@ class _Controls extends StatelessWidget {
             IconButton(
               iconSize: 64,
               color: Colors.white,
-              icon: Icon(value.isPlaying ? Icons.pause_circle_filled_rounded : Icons.play_circle_fill_rounded),
+              icon: Icon(
+                value.isPlaying
+                    ? Icons.pause_circle_filled_rounded
+                    : Icons.play_circle_fill_rounded,
+              ),
               onPressed: () {
                 if (value.isPlaying) {
                   controller.pause();
@@ -219,22 +246,35 @@ class _Controls extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
                 children: [
-                  Text(formatDuration(position), style: const TextStyle(color: Colors.white)),
+                  Text(
+                    formatDuration(position),
+                    style: const TextStyle(color: Colors.white),
+                  ),
                   Expanded(
                     child: Slider(
                       value: position.inMilliseconds.toDouble(),
-                      max: duration.inMilliseconds.toDouble().clamp(1, double.infinity),
+                      max: duration.inMilliseconds.toDouble().clamp(
+                        1,
+                        double.infinity,
+                      ),
                       onChanged: (v) {
                         controller.seekTo(Duration(milliseconds: v.round()));
                         onInteract();
                       },
                     ),
                   ),
-                  Text(formatDuration(duration), style: const TextStyle(color: Colors.white)),
+                  Text(
+                    formatDuration(duration),
+                    style: const TextStyle(color: Colors.white),
+                  ),
                   IconButton(
                     tooltip: fullscreen ? 'Exit full screen' : 'Full screen',
                     color: Colors.white,
-                    icon: Icon(fullscreen ? Icons.fullscreen_exit_rounded : Icons.fullscreen_rounded),
+                    icon: Icon(
+                      fullscreen
+                          ? Icons.fullscreen_exit_rounded
+                          : Icons.fullscreen_rounded,
+                    ),
                     onPressed: onFullscreen,
                   ),
                 ],

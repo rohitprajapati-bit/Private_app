@@ -24,14 +24,25 @@ class OnlinePhotoScreen extends ConsumerWidget {
         title: Text(item?.name ?? 'Photo'),
       ),
       body: item == null
-          ? const Center(child: Text('Not available', style: TextStyle(color: Colors.white70)))
+          ? const Center(
+              child: Text(
+                'Not available',
+                style: TextStyle(color: Colors.white70),
+              ),
+            )
           : PhotoView(
               backgroundDecoration: const BoxDecoration(color: Colors.black),
               minScale: PhotoViewComputedScale.contained,
               maxScale: PhotoViewComputedScale.covered * 3,
-              loadingBuilder: (context, _) => const Center(child: CircularProgressIndicator()),
-              errorBuilder: (context, _, _) =>
-                  const Center(child: Icon(Icons.broken_image_outlined, color: Colors.white54, size: 48)),
+              loadingBuilder: (context, _) =>
+                  const Center(child: CircularProgressIndicator()),
+              errorBuilder: (context, _, _) => const Center(
+                child: Icon(
+                  Icons.broken_image_outlined,
+                  color: Colors.white54,
+                  size: 48,
+                ),
+              ),
               imageProvider: NetworkImage(
                 ref.read(brokerClientProvider).mediaUri(id).toString(),
                 headers: session.headers,
@@ -95,7 +106,10 @@ class _OnlineVideoScreenState extends ConsumerState<OnlineVideoScreen> {
     final controller = _controller;
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(backgroundColor: Colors.black, title: Text(item?.name ?? 'Video')),
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        title: Text(item?.name ?? 'Video'),
+      ),
       body: Center(
         child: _error != null
             ? Text(_error!, style: const TextStyle(color: Colors.white70))
@@ -105,13 +119,17 @@ class _OnlineVideoScreenState extends ConsumerState<OnlineVideoScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   AspectRatio(
-                    aspectRatio: controller.value.aspectRatio == 0 ? 16 / 9 : controller.value.aspectRatio,
+                    aspectRatio: controller.value.aspectRatio == 0
+                        ? 16 / 9
+                        : controller.value.aspectRatio,
                     child: VideoPlayer(controller),
                   ),
                   VideoProgressIndicator(
                     controller,
                     allowScrubbing: true,
-                    colors: const VideoProgressColors(playedColor: AppColors.success),
+                    colors: const VideoProgressColors(
+                      playedColor: AppColors.success,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   ValueListenableBuilder(
@@ -119,8 +137,14 @@ class _OnlineVideoScreenState extends ConsumerState<OnlineVideoScreen> {
                     builder: (context, value, _) => IconButton(
                       iconSize: 48,
                       color: Colors.white,
-                      icon: Icon(value.isPlaying ? Icons.pause_circle_rounded : Icons.play_circle_rounded),
-                      onPressed: () => value.isPlaying ? controller.pause() : controller.play(),
+                      icon: Icon(
+                        value.isPlaying
+                            ? Icons.pause_circle_rounded
+                            : Icons.play_circle_rounded,
+                      ),
+                      onPressed: () => value.isPlaying
+                          ? controller.pause()
+                          : controller.play(),
                     ),
                   ),
                 ],

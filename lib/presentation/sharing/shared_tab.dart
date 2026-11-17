@@ -50,7 +50,10 @@ class _SharedTabState extends ConsumerState<SharedTab> {
   void _onClientChanged() => unawaited(_load());
 
   Future<void> _load() async {
-    final admin = await ref.read(sharingClientProvider).linkedAdmin().catchError((_) => null);
+    final admin = await ref
+        .read(sharingClientProvider)
+        .linkedAdmin()
+        .catchError((_) => null);
     if (!mounted) return;
     final changed = admin?.id != _admin?.id || !_loaded;
     setState(() {
@@ -76,7 +79,9 @@ class _SharedTabState extends ConsumerState<SharedTab> {
       final result = await client.sync();
       if (result.added > 0 || result.removed > 0) await library.reload();
       _setStatus(
-        result.failed > 0 ? '${result.failed} item(s) could not be received.' : 'Up to date',
+        result.failed > 0
+            ? '${result.failed} item(s) could not be received.'
+            : 'Up to date',
       );
     } on VaultLocked {
       // The vault closed mid-sync; the router has already left this screen.
@@ -102,7 +107,11 @@ class _SharedTabState extends ConsumerState<SharedTab> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.devices_rounded, size: 56, color: AppColors.textMuted),
+              const Icon(
+                Icons.devices_rounded,
+                size: 56,
+                color: AppColors.textMuted,
+              ),
               const SizedBox(height: 12),
               ListenableBuilder(
                 listenable: ref.read(sharingHostProvider),
@@ -147,8 +156,16 @@ class _SharedTabState extends ConsumerState<SharedTab> {
             title: Text('From ${admin.name} · view only'),
             subtitle: Text(syncing ? 'Syncing…' : _status ?? 'Waiting to sync'),
             trailing: syncing
-                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                : IconButton(tooltip: 'Sync now', icon: const Icon(Icons.sync_rounded), onPressed: _sync),
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : IconButton(
+                    tooltip: 'Sync now',
+                    icon: const Icon(Icons.sync_rounded),
+                    onPressed: _sync,
+                  ),
           ),
         ),
         const Expanded(child: MediaGrid(shared: true, basePath: Routes.vault)),

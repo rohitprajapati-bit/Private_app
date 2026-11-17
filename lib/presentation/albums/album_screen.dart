@@ -67,7 +67,8 @@ class AlbumScreen extends ConsumerWidget {
               ),
             ),
           );
-          if (type != null && context.mounted) await MediaActions.import(context, ref, type, albumId: albumId);
+          if (type != null && context.mounted)
+            await MediaActions.import(context, ref, type, albumId: albumId);
         },
         child: const Icon(Icons.add_rounded),
       ),

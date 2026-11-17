@@ -70,7 +70,7 @@ SPEC CHECKSUMS:
   audioplayers_darwin: 835ced6edd4c9fc8ebb0a7cc9e294a91d99917d5
   bonsoir_darwin: 14bd7429acb51db6a8e51f6574ac3b1ea0037a87
   cryptography_flutter: 4868d92d3e47f91f0bc321e63e6fa0387f365f11
-  Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
+  Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
   flutter_secure_storage_darwin: 46e401699982ee74142909676535e0f6a7321e58
   gal: baecd024ebfd13c441269ca7404792a7152fde89
   integration_test: 4a889634ef21a45d28d50d622cf412dc6d9f586e

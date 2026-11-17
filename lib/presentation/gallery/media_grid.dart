@@ -33,7 +33,13 @@ String formatBytes(int bytes) {
 /// [type] filters to photos or videos; [albumId] restricts to one album. [shared] shows only
 /// items received from an admin device (view-only: no selection) instead of the owner's own.
 class MediaGrid extends ConsumerStatefulWidget {
-  const MediaGrid({super.key, this.type, this.albumId, this.shared = false, required this.basePath});
+  const MediaGrid({
+    super.key,
+    this.type,
+    this.albumId,
+    this.shared = false,
+    required this.basePath,
+  });
 
   final MediaType? type;
   final String? albumId;
@@ -53,10 +59,29 @@ class _MediaGridState extends ConsumerState<MediaGrid> {
 
   bool get _selecting => _selected.isNotEmpty;
 
+  // Filtering and sorting are memoised so that toggling a selection does not re-sort the library.
+  // Identity, not ==: freezed equality would deep-compare every item on each build.
+  VaultLibrary? _visibleLibrary;
+  (String, MediaSort)? _visibleKey;
+  List<MediaItem> _visibleItems = const [];
+
   List<MediaItem> _visible(VaultLibrary library) {
-    var items = library.items.where((i) => i.isShared == widget.shared).toList();
-    if (widget.type != null) items = items.where((i) => i.type == widget.type).toList();
-    if (widget.albumId != null) items = items.where((i) => i.albumId == widget.albumId).toList();
+    final key = (_query, _sort);
+    if (identical(library, _visibleLibrary) && key == _visibleKey)
+      return _visibleItems;
+    _visibleLibrary = library;
+    _visibleKey = key;
+    return _visibleItems = _filter(library);
+  }
+
+  List<MediaItem> _filter(VaultLibrary library) {
+    var items = library.items
+        .where((i) => i.isShared == widget.shared)
+        .toList();
+    if (widget.type != null)
+      items = items.where((i) => i.type == widget.type).toList();
+    if (widget.albumId != null)
+      items = items.where((i) => i.albumId == widget.albumId).toList();
     return items.matching(_query).sortedBy(_sort);
   }
 
@@ -64,7 +89,10 @@ class _MediaGridState extends ConsumerState<MediaGrid> {
     if (item.isVideo) {
       context.go(Routes.video(widget.basePath, item.id));
     } else {
-      final photoIds = [for (final i in visible) if (!i.isVideo) i.id];
+      final photoIds = [
+        for (final i in visible)
+          if (!i.isVideo) i.id,
+      ];
       context.go(Routes.photo(widget.basePath, item.id), extra: photoIds);
     }
   }
@@ -82,15 +110,21 @@ class _MediaGridState extends ConsumerState<MediaGrid> {
       error: (e, _) => const Center(child: Text('Could not open the vault.')),
       data: (library) {
         final visible = _visible(library);
-        _selected.removeWhere((id) => !visible.any((i) => i.id == id));
-        final selectedItems = visible.where((i) => _selected.contains(i.id)).toList();
+        if (_selected.isNotEmpty) {
+          final visibleIds = {for (final i in visible) i.id};
+          _selected.removeWhere((id) => !visibleIds.contains(id));
+        }
+        final selectedItems = visible
+            .where((i) => _selected.contains(i.id))
+            .toList();
         return Column(
           children: [
             if (_selecting)
               _SelectionBar(
                 count: _selected.length,
                 onClear: () => setState(_selected.clear),
-                onSelectAll: () => setState(() => _selected.addAll(visible.map((i) => i.id))),
+                onSelectAll: () =>
+                    setState(() => _selected.addAll(visible.map((i) => i.id))),
                 onMove: () async {
                   await MediaActions.moveToAlbum(context, ref, selectedItems);
                   setState(_selected.clear);
@@ -100,11 +134,15 @@ class _MediaGridState extends ConsumerState<MediaGrid> {
                   setState(_selected.clear);
                 },
                 onSend: () {
-                  context.push(Routes.send, extra: [for (final i in selectedItems) i.id]);
+                  context.push(
+                    Routes.send,
+                    extra: [for (final i in selectedItems) i.id],
+                  );
                   setState(_selected.clear);
                 },
                 onDelete: () async {
-                  if (await MediaActions.delete(context, ref, selectedItems)) setState(_selected.clear);
+                  if (await MediaActions.delete(context, ref, selectedItems))
+                    setState(_selected.clear);
                 },
               )
             else
@@ -116,27 +154,41 @@ class _MediaGridState extends ConsumerState<MediaGrid> {
               ),
             Expanded(
               child: visible.isEmpty
-                  ? _Empty(searching: _query.isNotEmpty, type: widget.type, shared: widget.shared)
+                  ? _Empty(
+                      searching: _query.isNotEmpty,
+                      type: widget.type,
+                      shared: widget.shared,
+                    )
                   : LayoutBuilder(
                       builder: (context, constraints) {
-                        final columns = (constraints.maxWidth / 120).floor().clamp(3, 6);
+                        final columns = (constraints.maxWidth / 120)
+                            .floor()
+                            .clamp(3, 6);
                         return GridView.builder(
                           padding: const EdgeInsets.fromLTRB(4, 4, 4, 96),
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: columns,
-                            mainAxisSpacing: 4,
-                            crossAxisSpacing: 4,
-                          ),
+                          gridDelegate:
+                              SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: columns,
+                                mainAxisSpacing: 4,
+                                crossAxisSpacing: 4,
+                              ),
                           itemCount: visible.length,
                           itemBuilder: (context, index) {
                             final item = visible[index];
                             return _GridTile(
                               item: item,
-                              thumbnail: EncryptedThumbnail(item: item, repository: repository),
+                              thumbnail: EncryptedThumbnail(
+                                item: item,
+                                repository: repository,
+                              ),
                               selected: _selected.contains(item.id),
                               selecting: _selecting,
-                              onTap: () => _selecting ? _toggle(item) : _open(item, visible),
-                              onLongPress: widget.shared ? null : () => _toggle(item),
+                              onTap: () => _selecting
+                                  ? _toggle(item)
+                                  : _open(item, visible),
+                              onLongPress: widget.shared
+                                  ? null
+                                  : () => _toggle(item),
                             );
                           },
                         );
@@ -178,21 +230,40 @@ class _GridTile extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            AnimatedScale(scale: selected ? 0.88 : 1, duration: const Duration(milliseconds: 150), child: thumbnail),
+            AnimatedScale(
+              scale: selected ? 0.88 : 1,
+              duration: const Duration(milliseconds: 150),
+              child: thumbnail,
+            ),
             if (item.isVideo)
               Positioned(
                 right: 4,
                 bottom: 4,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(6)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.play_arrow_rounded, size: 14, color: Colors.white),
+                      const Icon(
+                        Icons.play_arrow_rounded,
+                        size: 14,
+                        color: Colors.white,
+                      ),
                       Text(
-                        item.duration == null ? '' : formatDuration(item.duration!),
-                        style: const TextStyle(fontSize: 11, color: Colors.white),
+                        item.duration == null
+                            ? ''
+                            : formatDuration(item.duration!),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: Colors.white,
+                        ),
                       ),
                     ],
                   ),
@@ -203,7 +274,9 @@ class _GridTile extends StatelessWidget {
                 top: 6,
                 left: 6,
                 child: Icon(
-                  selected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                  selected
+                      ? Icons.check_circle_rounded
+                      : Icons.radio_button_unchecked_rounded,
                   color: selected ? accent : Colors.white70,
                 ),
               ),
@@ -215,7 +288,12 @@ class _GridTile extends StatelessWidget {
 }
 
 class _SearchBar extends StatelessWidget {
-  const _SearchBar({required this.sort, required this.showDurationSort, required this.onQuery, required this.onSort});
+  const _SearchBar({
+    required this.sort,
+    required this.showDurationSort,
+    required this.onQuery,
+    required this.onSort,
+  });
 
   final MediaSort sort;
   final bool showDurationSort;
@@ -244,11 +322,24 @@ class _SearchBar extends StatelessWidget {
             initialValue: sort,
             onSelected: onSort,
             itemBuilder: (context) => [
-              const PopupMenuItem(value: MediaSort.newest, child: Text('Newest first')),
-              const PopupMenuItem(value: MediaSort.oldest, child: Text('Oldest first')),
+              const PopupMenuItem(
+                value: MediaSort.newest,
+                child: Text('Newest first'),
+              ),
+              const PopupMenuItem(
+                value: MediaSort.oldest,
+                child: Text('Oldest first'),
+              ),
               const PopupMenuItem(value: MediaSort.name, child: Text('Name')),
-              const PopupMenuItem(value: MediaSort.largest, child: Text('Largest')),
-              if (showDurationSort) const PopupMenuItem(value: MediaSort.longest, child: Text('Longest')),
+              const PopupMenuItem(
+                value: MediaSort.largest,
+                child: Text('Largest'),
+              ),
+              if (showDurationSort)
+                const PopupMenuItem(
+                  value: MediaSort.longest,
+                  child: Text('Longest'),
+                ),
             ],
           ),
         ],
@@ -284,12 +375,37 @@ class _SelectionBar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         child: Row(
           children: [
-            IconButton(tooltip: 'Cancel', onPressed: onClear, icon: const Icon(Icons.close_rounded)),
-            Expanded(child: Text('$count selected', style: const TextStyle(fontWeight: FontWeight.w700))),
-            IconButton(tooltip: 'Send to nearby phone', onPressed: onSend, icon: const Icon(Icons.send_rounded)),
-            IconButton(tooltip: 'Select all', onPressed: onSelectAll, icon: const Icon(Icons.select_all_rounded)),
-            IconButton(tooltip: 'Move to album', onPressed: onMove, icon: const Icon(Icons.drive_file_move_rounded)),
-            IconButton(tooltip: 'Save to gallery', onPressed: onExport, icon: const Icon(Icons.download_rounded)),
+            IconButton(
+              tooltip: 'Cancel',
+              onPressed: onClear,
+              icon: const Icon(Icons.close_rounded),
+            ),
+            Expanded(
+              child: Text(
+                '$count selected',
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+            IconButton(
+              tooltip: 'Send to nearby phone',
+              onPressed: onSend,
+              icon: const Icon(Icons.send_rounded),
+            ),
+            IconButton(
+              tooltip: 'Select all',
+              onPressed: onSelectAll,
+              icon: const Icon(Icons.select_all_rounded),
+            ),
+            IconButton(
+              tooltip: 'Move to album',
+              onPressed: onMove,
+              icon: const Icon(Icons.drive_file_move_rounded),
+            ),
+            IconButton(
+              tooltip: 'Save to gallery',
+              onPressed: onExport,
+              icon: const Icon(Icons.download_rounded),
+            ),
             IconButton(
               tooltip: 'Delete',
               onPressed: onDelete,
@@ -303,7 +419,11 @@ class _SelectionBar extends StatelessWidget {
 }
 
 class _Empty extends StatelessWidget {
-  const _Empty({required this.searching, required this.type, required this.shared});
+  const _Empty({
+    required this.searching,
+    required this.type,
+    required this.shared,
+  });
 
   final bool searching;
   final MediaType? type;
@@ -322,7 +442,11 @@ class _Empty extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(searching ? Icons.search_off_rounded : Icons.lock_outline_rounded, size: 56, color: AppColors.textMuted),
+            Icon(
+              searching ? Icons.search_off_rounded : Icons.lock_outline_rounded,
+              size: 56,
+              color: AppColors.textMuted,
+            ),
             const SizedBox(height: 12),
             Text(
               searching
