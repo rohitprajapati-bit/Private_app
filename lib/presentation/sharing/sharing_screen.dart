@@ -59,7 +59,10 @@ class _QuickShareSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const _SectionTitle(icon: Icons.swap_horiz_rounded, title: 'Send / Receive files'),
+            const _SectionTitle(
+              icon: Icons.swap_horiz_rounded,
+              title: 'Send / Receive files',
+            ),
             const SizedBox(height: 4),
             const Text(
               'Give photos and videos to a nearby phone. It keeps its own copy in its hidden vault.',
@@ -71,7 +74,8 @@ class _QuickShareSection extends StatelessWidget {
               children: [
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: () => context.push(Routes.send, extra: const <String>[]),
+                    onPressed: () =>
+                        context.push(Routes.send, extra: const <String>[]),
                     icon: const Icon(Icons.send_rounded),
                     label: const Text('Send'),
                   ),
@@ -109,7 +113,12 @@ class _GroupLabel extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Text(
         text.toUpperCase(),
-        style: const TextStyle(color: AppColors.textMuted, fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1),
+        style: const TextStyle(
+          color: AppColors.textMuted,
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 1,
+        ),
       ),
     );
   }

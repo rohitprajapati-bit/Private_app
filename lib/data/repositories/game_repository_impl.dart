@@ -15,14 +15,16 @@ class GameRepositoryImpl implements GameRepository {
   static const _progressKey = 'game.progress';
 
   @override
-  GameSettings loadSettings() => _read(_settingsKey, GameSettings.fromJson) ?? const GameSettings();
+  GameSettings loadSettings() =>
+      _read(_settingsKey, GameSettings.fromJson) ?? const GameSettings();
 
   @override
   Future<void> saveSettings(GameSettings settings) =>
       _prefs.setString(_settingsKey, jsonEncode(settings.toJson()));
 
   @override
-  GameProgress loadProgress() => _read(_progressKey, GameProgress.fromJson) ?? const GameProgress();
+  GameProgress loadProgress() =>
+      _read(_progressKey, GameProgress.fromJson) ?? const GameProgress();
 
   @override
   Future<void> saveProgress(GameProgress progress) =>

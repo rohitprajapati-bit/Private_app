@@ -33,6 +33,7 @@ abstract final class AppConstants {
   static const maxLockout = Duration(hours: 1);
 
   /// Game "tile styles". The pause-menu palette doubles as the secret-sequence keypad.
+  /// Saved sequences store indices: only append colours, never reorder or remove them.
   static const palette = <Color>[
     Color(0xFFFF5C8A),
     Color(0xFFFFB547),
@@ -40,5 +41,9 @@ abstract final class AppConstants {
     Color(0xFF45B4FF),
     Color(0xFF9B7BFF),
     Color(0xFFFF7A45),
+    Color(0xFFA3E635),
+    Color(0xFF3D5AFE),
+    Color(0xFFD946EF),
+    Color(0xFFE53935),
   ];
 }

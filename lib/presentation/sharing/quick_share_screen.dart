@@ -67,7 +67,13 @@ class _SendScreenState extends ConsumerState<SendScreen> {
 
   Future<void> _loadSummary() async {
     final items = await _sender.sendable(_ids);
-    if (mounted) setState(() => _summary = (count: items.length, bytes: items.fold(0, (sum, i) => sum + i.wire)));
+    if (mounted)
+      setState(
+        () => _summary = (
+          count: items.length,
+          bytes: items.fold(0, (sum, i) => sum + i.wire),
+        ),
+      );
   }
 
   void _scan() {
@@ -96,13 +102,19 @@ class _SendScreenState extends ConsumerState<SendScreen> {
   Future<void> _scanQr() async {
     // The camera permission prompt briefly backgrounds the app; don't lock the vault for it.
     final text = await _session.withoutAutoLock(
-      () => Navigator.of(context).push<String>(MaterialPageRoute(builder: (_) => const _QrScannerPage())),
+      () => Navigator.of(
+        context,
+      ).push<String>(MaterialPageRoute(builder: (_) => const _QrScannerPage())),
     );
     if (text == null || !mounted) return;
     final ticket = ReceiverTicket.decode(text);
     if (ticket == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('That is not a Receive code. Open Receive on the other phone.')),
+        const SnackBar(
+          content: Text(
+            'That is not a Receive code. Open Receive on the other phone.',
+          ),
+        ),
       );
       return;
     }
@@ -155,7 +167,12 @@ class _SendScreenState extends ConsumerState<SendScreen> {
                       title: 'Waiting for the other phone to accept',
                       code: sender.code!,
                       hint: 'It should show this same code.',
-                      actions: [TextButton(onPressed: sender.cancel, child: const Text('Cancel'))],
+                      actions: [
+                        TextButton(
+                          onPressed: sender.cancel,
+                          child: const Text('Cancel'),
+                        ),
+                      ],
                     ),
                     SendStage.sending => _ProgressCard(
                       verb: 'Sending',
@@ -206,7 +223,10 @@ class _SendScreenState extends ConsumerState<SendScreen> {
               style: TextStyle(color: AppColors.textMuted, fontSize: 13),
             ),
             const Divider(height: 32),
-            const Text('Or pick a nearby phone', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+            const Text(
+              'Or pick a nearby phone',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+            ),
             const SizedBox(height: 4),
             const Text(
               'The other phone must have Receive open and be on the same Wi-Fi.',
@@ -217,7 +237,9 @@ class _SendScreenState extends ConsumerState<SendScreen> {
             for (final device in _found)
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const CircleAvatar(child: Icon(Icons.phone_iphone_rounded)),
+                leading: const CircleAvatar(
+                  child: Icon(Icons.phone_iphone_rounded),
+                ),
                 title: Text(device.name),
                 subtitle: const Text('Ready to receive'),
                 trailing: const Icon(Icons.send_rounded),
@@ -229,7 +251,11 @@ class _SendScreenState extends ConsumerState<SendScreen> {
                   padding: EdgeInsets.symmetric(vertical: 8),
                   child: Text('No phones found.', textAlign: TextAlign.center),
                 ),
-              OutlinedButton.icon(onPressed: _scan, icon: const Icon(Icons.refresh_rounded), label: const Text('Search again')),
+              OutlinedButton.icon(
+                onPressed: _scan,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Search again'),
+              ),
             ],
           ],
         ),
@@ -275,17 +301,26 @@ class _ItemPickerState extends ConsumerState<_ItemPicker> {
                     child: SegmentedButton<MediaType?>(
                       segments: const [
                         ButtonSegment(value: null, label: Text('All')),
-                        ButtonSegment(value: MediaType.photo, label: Text('Photos')),
-                        ButtonSegment(value: MediaType.video, label: Text('Videos')),
+                        ButtonSegment(
+                          value: MediaType.photo,
+                          label: Text('Photos'),
+                        ),
+                        ButtonSegment(
+                          value: MediaType.video,
+                          label: Text('Videos'),
+                        ),
                       ],
                       selected: {_type},
-                      onSelectionChanged: (s) => setState(() => _type = s.first),
+                      onSelectionChanged: (s) =>
+                          setState(() => _type = s.first),
                     ),
                   ),
                   IconButton(
                     tooltip: 'Select all',
                     icon: const Icon(Icons.select_all_rounded),
-                    onPressed: () => setState(() => _selected.addAll(items.map((i) => i.id))),
+                    onPressed: () => setState(
+                      () => _selected.addAll(items.map((i) => i.id)),
+                    ),
                   ),
                 ],
               ),
@@ -293,22 +328,27 @@ class _ItemPickerState extends ConsumerState<_ItemPicker> {
             Expanded(
               child: items.isEmpty
                   ? const Center(
-                      child: Text('Nothing to send yet.', style: TextStyle(color: AppColors.textMuted)),
+                      child: Text(
+                        'Nothing to send yet.',
+                        style: TextStyle(color: AppColors.textMuted),
+                      ),
                     )
                   : GridView.builder(
                       padding: const EdgeInsets.all(4),
-                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: 120,
-                        mainAxisSpacing: 4,
-                        crossAxisSpacing: 4,
-                      ),
+                      gridDelegate:
+                          const SliverGridDelegateWithMaxCrossAxisExtent(
+                            maxCrossAxisExtent: 120,
+                            mainAxisSpacing: 4,
+                            crossAxisSpacing: 4,
+                          ),
                       itemCount: items.length,
                       itemBuilder: (context, index) {
                         final item = items[index];
                         final selected = _selected.contains(item.id);
                         return GestureDetector(
                           onTap: () => setState(() {
-                            if (!_selected.remove(item.id)) _selected.add(item.id);
+                            if (!_selected.remove(item.id))
+                              _selected.add(item.id);
                           }),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(6),
@@ -318,19 +358,28 @@ class _ItemPickerState extends ConsumerState<_ItemPicker> {
                                 AnimatedScale(
                                   scale: selected ? 0.88 : 1,
                                   duration: const Duration(milliseconds: 150),
-                                  child: EncryptedThumbnail(item: item, repository: repository),
+                                  child: EncryptedThumbnail(
+                                    item: item,
+                                    repository: repository,
+                                  ),
                                 ),
                                 if (item.isVideo)
                                   const Positioned(
                                     right: 4,
                                     bottom: 4,
-                                    child: Icon(Icons.play_circle_fill_rounded, size: 18, color: Colors.white),
+                                    child: Icon(
+                                      Icons.play_circle_fill_rounded,
+                                      size: 18,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 Positioned(
                                   top: 6,
                                   left: 6,
                                   child: Icon(
-                                    selected ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                                    selected
+                                        ? Icons.check_circle_rounded
+                                        : Icons.radio_button_unchecked_rounded,
                                     color: selected ? accent : Colors.white70,
                                   ),
                                 ),
@@ -346,9 +395,15 @@ class _ItemPickerState extends ConsumerState<_ItemPicker> {
               child: SizedBox(
                 width: double.infinity,
                 child: FilledButton.icon(
-                  onPressed: _selected.isEmpty ? null : () => widget.onDone(_selected.toList()),
+                  onPressed: _selected.isEmpty
+                      ? null
+                      : () => widget.onDone(_selected.toList()),
                   icon: const Icon(Icons.send_rounded),
-                  label: Text(_selected.isEmpty ? 'Select items' : 'Next · ${_items(_selected.length)}'),
+                  label: Text(
+                    _selected.isEmpty
+                        ? 'Select items'
+                        : 'Next · ${_items(_selected.length)}',
+                  ),
                 ),
               ),
             ),
@@ -368,7 +423,9 @@ class _QrScannerPage extends StatefulWidget {
 }
 
 class _QrScannerPageState extends State<_QrScannerPage> {
-  final _controller = MobileScannerController(formats: const [BarcodeFormat.qrCode]);
+  final _controller = MobileScannerController(
+    formats: const [BarcodeFormat.qrCode],
+  );
   bool _done = false;
 
   @override
@@ -413,7 +470,10 @@ class _QrScannerPageState extends State<_QrScannerPage> {
               width: 240,
               height: 240,
               decoration: BoxDecoration(
-                border: Border.all(color: Theme.of(context).colorScheme.primary, width: 3),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.primary,
+                  width: 3,
+                ),
                 borderRadius: BorderRadius.circular(16),
               ),
             ),
@@ -472,7 +532,8 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
     try {
       await _receiver.start();
     } on Object {
-      if (mounted) setState(() => _error = 'Could not start receiving on this network.');
+      if (mounted)
+        setState(() => _error = 'Could not start receiving on this network.');
     }
   }
 
@@ -503,15 +564,23 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
                 _Header(
                   icon: Icons.move_to_inbox_rounded,
                   title: 'Ready to receive as "${receiver.deviceName}"',
-                  subtitle: 'On the other phone: Send → choose items → Scan QR code (or pick this phone). '
+                  subtitle:
+                      'On the other phone: Send → choose items → Scan QR code (or pick this phone). '
                       'Keep this screen open. Items are saved only in this hidden vault.',
                 ),
                 const SizedBox(height: 16),
                 if (_error != null)
-                  _ResultCard(success: false, text: _error!, primary: ('Retry', () {
-                    setState(() => _error = null);
-                    unawaited(_start());
-                  }))
+                  _ResultCard(
+                    success: false,
+                    text: _error!,
+                    primary: (
+                      'Retry',
+                      () {
+                        setState(() => _error = null);
+                        unawaited(_start());
+                      },
+                    ),
+                  )
                 else
                   switch (receiver.stage) {
                     ReceiveStage.off || ReceiveStage.ready => _QrCard(
@@ -519,16 +588,25 @@ class _ReceiveScreenState extends ConsumerState<ReceiveScreen> {
                       discoverable: receiver.discoverable,
                     ),
                     ReceiveStage.offered => _CodeCard(
-                      title: '${offer!.sender.name} wants to send ${_items(offer.count)} (${formatBytes(offer.bytes)})',
+                      title:
+                          '${offer!.sender.name} wants to send ${_items(offer.count)} (${formatBytes(offer.bytes)})',
                       code: offer.code,
-                      hint: 'Accept only if the sending phone shows the same code.',
+                      hint:
+                          'Accept only if the sending phone shows the same code.',
                       actions: [
-                        TextButton(onPressed: receiver.decline, child: const Text('Decline')),
-                        FilledButton(onPressed: receiver.accept, child: const Text('Accept')),
+                        TextButton(
+                          onPressed: receiver.decline,
+                          child: const Text('Decline'),
+                        ),
+                        FilledButton(
+                          onPressed: receiver.accept,
+                          child: const Text('Accept'),
+                        ),
                       ],
                     ),
                     ReceiveStage.receiving => _ProgressCard(
-                      verb: 'Receiving from ${receiver.sender?.name ?? 'sender'}',
+                      verb:
+                          'Receiving from ${receiver.sender?.name ?? 'sender'}',
                       progress: receiver.progress,
                       onCancel: receiver.receiveMore,
                     ),
@@ -558,7 +636,11 @@ String _resultText(String verb, TransferProgress p) {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.icon, required this.title, required this.subtitle});
+  const _Header({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
 
   final IconData icon;
   final String title;
@@ -570,13 +652,27 @@ class _Header extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 36,
-          backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
-          child: Icon(icon, size: 36, color: Theme.of(context).colorScheme.primary),
+          backgroundColor: Theme.of(
+            context,
+          ).colorScheme.primary.withValues(alpha: 0.15),
+          child: Icon(
+            icon,
+            size: 36,
+            color: Theme.of(context).colorScheme.primary,
+          ),
         ),
         const SizedBox(height: 12),
-        Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+        ),
         const SizedBox(height: 6),
-        Text(subtitle, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textMuted)),
+        Text(
+          subtitle,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: AppColors.textMuted),
+        ),
       ],
     );
   }
@@ -608,8 +704,15 @@ class _QrCard extends StatelessWidget {
             else
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-                child: QrImageView(data: ticket.encode(), size: 220, backgroundColor: Colors.white),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: QrImageView(
+                  data: ticket.encode(),
+                  size: 220,
+                  backgroundColor: Colors.white,
+                ),
               ),
             const SizedBox(height: 12),
             const LinearProgressIndicator(),
@@ -638,7 +741,11 @@ class _Busy extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
-          children: [const LinearProgressIndicator(), const SizedBox(height: 12), Text(text)],
+          children: [
+            const LinearProgressIndicator(),
+            const SizedBox(height: 12),
+            Text(text),
+          ],
         ),
       ),
     );
@@ -646,7 +753,12 @@ class _Busy extends StatelessWidget {
 }
 
 class _CodeCard extends StatelessWidget {
-  const _CodeCard({required this.title, required this.code, required this.hint, required this.actions});
+  const _CodeCard({
+    required this.title,
+    required this.code,
+    required this.hint,
+    required this.actions,
+  });
 
   final String title;
   final String code;
@@ -660,16 +772,32 @@ class _CodeCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Text(title, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w700)),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
             const SizedBox(height: 12),
             Text(
               '${code.substring(0, 3)} ${code.substring(3)}',
-              style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w800, letterSpacing: 4),
+              style: const TextStyle(
+                fontSize: 34,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 4,
+              ),
             ),
             const SizedBox(height: 8),
-            Text(hint, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textMuted)),
+            Text(
+              hint,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textMuted),
+            ),
             const SizedBox(height: 12),
-            Row(mainAxisAlignment: MainAxisAlignment.end, spacing: 8, children: actions),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              spacing: 8,
+              children: actions,
+            ),
           ],
         ),
       ),
@@ -678,7 +806,11 @@ class _CodeCard extends StatelessWidget {
 }
 
 class _ProgressCard extends StatelessWidget {
-  const _ProgressCard({required this.verb, required this.progress, required this.onCancel});
+  const _ProgressCard({
+    required this.verb,
+    required this.progress,
+    required this.onCancel,
+  });
 
   final String verb;
   final TransferProgress progress;
@@ -696,19 +828,33 @@ class _ProgressCard extends StatelessWidget {
           children: [
             Text(verb, style: const TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
-            LinearProgressIndicator(value: fraction, minHeight: 8, borderRadius: BorderRadius.circular(4)),
+            LinearProgressIndicator(
+              value: fraction,
+              minHeight: 8,
+              borderRadius: BorderRadius.circular(4),
+            ),
             const SizedBox(height: 8),
             Row(
               children: [
-                Expanded(child: Text('${p.doneItems + p.failed} of ${p.totalItems}')),
-                Text('${formatBytes(p.doneBytes)} / ${formatBytes(p.totalBytes)}'),
+                Expanded(
+                  child: Text('${p.doneItems + p.failed} of ${p.totalItems}'),
+                ),
+                Text(
+                  '${formatBytes(p.doneBytes)} / ${formatBytes(p.totalBytes)}',
+                ),
               ],
             ),
             const SizedBox(height: 4),
-            const Text('Keep the app open until this finishes.', style: TextStyle(fontSize: 12, color: AppColors.textMuted)),
+            const Text(
+              'Keep the app open until this finishes.',
+              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+            ),
             Align(
               alignment: Alignment.centerRight,
-              child: TextButton(onPressed: onCancel, child: const Text('Cancel')),
+              child: TextButton(
+                onPressed: onCancel,
+                child: const Text('Cancel'),
+              ),
             ),
           ],
         ),
@@ -718,7 +864,12 @@ class _ProgressCard extends StatelessWidget {
 }
 
 class _ResultCard extends StatelessWidget {
-  const _ResultCard({required this.success, required this.text, required this.primary, this.secondary});
+  const _ResultCard({
+    required this.success,
+    required this.text,
+    required this.primary,
+    this.secondary,
+  });
 
   final bool success;
   final String text;
@@ -733,9 +884,13 @@ class _ResultCard extends StatelessWidget {
         child: Column(
           children: [
             Icon(
-              success ? Icons.check_circle_rounded : Icons.error_outline_rounded,
+              success
+                  ? Icons.check_circle_rounded
+                  : Icons.error_outline_rounded,
               size: 48,
-              color: success ? Theme.of(context).colorScheme.primary : AppColors.danger,
+              color: success
+                  ? Theme.of(context).colorScheme.primary
+                  : AppColors.danger,
             ),
             const SizedBox(height: 8),
             Text(text, textAlign: TextAlign.center),
@@ -744,7 +899,8 @@ class _ResultCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.end,
               spacing: 8,
               children: [
-                if (secondary case (final label, final onTap)) TextButton(onPressed: onTap, child: Text(label)),
+                if (secondary case (final label, final onTap))
+                  TextButton(onPressed: onTap, child: Text(label)),
                 FilledButton(onPressed: primary.$2, child: Text(primary.$1)),
               ],
             ),

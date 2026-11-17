@@ -6,7 +6,10 @@ import '../../domain/entities/media_item.dart';
 import '../../domain/entities/vault_library.dart';
 import '../../injection.dart';
 
-final vaultLibraryProvider = AsyncNotifierProvider<VaultLibraryNotifier, VaultLibrary>(VaultLibraryNotifier.new);
+final vaultLibraryProvider =
+    AsyncNotifierProvider<VaultLibraryNotifier, VaultLibrary>(
+      VaultLibraryNotifier.new,
+    );
 
 /// Decrypted listing of the open vault. Empty while locked, reloaded on every unlock.
 class VaultLibraryNotifier extends AsyncNotifier<VaultLibrary> {
@@ -39,15 +42,17 @@ class VaultLibraryNotifier extends AsyncNotifier<VaultLibrary> {
   Future<void> delete(List<MediaItem> items) =>
       _whileUnlocked(() => ref.read(mediaRepositoryProvider).delete(items));
 
-  Future<void> move(List<MediaItem> items, String? albumId) =>
-      _whileUnlocked(() => ref.read(mediaRepositoryProvider).move(items, albumId));
+  Future<void> move(List<MediaItem> items, String? albumId) => _whileUnlocked(
+    () => ref.read(mediaRepositoryProvider).move(items, albumId),
+  );
 
   /// Null when the vault locked before the album could be created.
   Future<Album?> createAlbum(String name) =>
       _whileUnlocked(() => ref.read(mediaRepositoryProvider).createAlbum(name));
 
-  Future<void> renameAlbum(String id, String name) =>
-      _whileUnlocked(() => ref.read(mediaRepositoryProvider).renameAlbum(id, name));
+  Future<void> renameAlbum(String id, String name) => _whileUnlocked(
+    () => ref.read(mediaRepositoryProvider).renameAlbum(id, name),
+  );
 
   Future<void> deleteAlbum(String id) =>
       _whileUnlocked(() => ref.read(mediaRepositoryProvider).deleteAlbum(id));

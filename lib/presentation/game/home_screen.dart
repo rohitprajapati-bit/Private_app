@@ -22,7 +22,9 @@ class HomeScreen extends ConsumerWidget {
           builder: (context, constraints) => SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight - 32),
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight - 32,
+              ),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 420),
@@ -35,10 +37,11 @@ class HomeScreen extends ConsumerWidget {
                       Text(
                         AppConstants.appName,
                         textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: AppColors.textPrimary,
-                        ),
+                        style: Theme.of(context).textTheme.displaySmall
+                            ?.copyWith(
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.textPrimary,
+                            ),
                       ),
                       const SizedBox(height: 6),
                       const Text(
@@ -49,20 +52,37 @@ class HomeScreen extends ConsumerWidget {
                       const SizedBox(height: 28),
                       Row(
                         children: [
-                          Expanded(child: _Stat(label: 'Best score', value: '${progress.bestScore}')),
+                          Expanded(
+                            child: _Stat(
+                              label: 'Best score',
+                              value: '${progress.bestScore}',
+                            ),
+                          ),
                           const SizedBox(width: 12),
-                          Expanded(child: _Stat(label: 'Level reached', value: '${progress.highestLevel}')),
+                          Expanded(
+                            child: _Stat(
+                              label: 'Level reached',
+                              value: '${progress.highestLevel}',
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 28),
                       FilledButton.icon(
-                        onPressed: () => context.push(Routes.play(progress.highestLevel)),
+                        onPressed: () =>
+                            context.push(Routes.play(progress.highestLevel)),
                         icon: const Icon(Icons.play_arrow_rounded),
-                        label: Text(progress.highestLevel > 1 ? 'Continue · Level ${progress.highestLevel}' : 'Play'),
+                        label: Text(
+                          progress.highestLevel > 1
+                              ? 'Continue · Level ${progress.highestLevel}'
+                              : 'Play',
+                        ),
                       ),
                       const SizedBox(height: 12),
                       OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(minimumSize: const Size(56, 52)),
+                        style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(56, 52),
+                        ),
                         onPressed: () => context.push(Routes.levels),
                         icon: const Icon(Icons.grid_view_rounded),
                         label: const Text('Levels'),
@@ -98,9 +118,15 @@ class _Stat extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         child: Column(
           children: [
-            Text(value, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800)),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800),
+            ),
             const SizedBox(height: 4),
-            Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+            Text(
+              label,
+              style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
+            ),
           ],
         ),
       ),
@@ -121,12 +147,18 @@ class _AnimatedLogoState extends State<_AnimatedLogo> {
   late List<Color> _colors = _shuffle();
   Timer? _timer;
 
-  List<Color> _shuffle() => List.generate(9, (_) => AppConstants.palette[_random.nextInt(AppConstants.palette.length)]);
+  List<Color> _shuffle() => List.generate(
+    9,
+    (_) => AppConstants.palette[_random.nextInt(AppConstants.palette.length)],
+  );
 
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(milliseconds: 1400), (_) => setState(() => _colors = _shuffle()));
+    _timer = Timer.periodic(
+      const Duration(milliseconds: 1400),
+      (_) => setState(() => _colors = _shuffle()),
+    );
   }
 
   @override
@@ -151,7 +183,10 @@ class _AnimatedLogoState extends State<_AnimatedLogo> {
               AnimatedContainer(
                 duration: const Duration(milliseconds: 600),
                 curve: Curves.easeInOut,
-                decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)),
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
           ],
         ),

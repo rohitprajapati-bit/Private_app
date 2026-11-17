@@ -79,7 +79,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 440),
-              child: AnimatedSwitcher(duration: const Duration(milliseconds: 250), child: _buildStep()),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                child: _buildStep(),
+              ),
             ),
           ),
         ),
@@ -104,7 +107,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
       icon: Icons.lock_rounded,
       title: 'Securing…',
       body: 'Generating keys. This takes a few seconds.',
-      child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()),
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: CircularProgressIndicator(),
+      ),
     ),
   };
 
@@ -130,7 +136,9 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         SizedBox(
           width: double.infinity,
           child: FilledButton(
-            onPressed: _acknowledged ? () => setState(() => _step = _Step.password) : null,
+            onPressed: _acknowledged
+                ? () => setState(() => _step = _Step.password)
+                : null,
             child: const Text('Continue'),
           ),
         ),
@@ -145,7 +153,11 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
     body: 'At least 8 characters. A longer passphrase is stronger.',
     child: Column(
       children: [
-        PasswordField(controller: _password, label: 'Password', autofocus: true),
+        PasswordField(
+          controller: _password,
+          label: 'Password',
+          autofocus: true,
+        ),
         const SizedBox(height: 8),
         PasswordStrengthBar(password: _password.text),
         const SizedBox(height: 12),
@@ -167,7 +179,10 @@ class _SetupScreenState extends ConsumerState<SetupScreen> {
         SizedBox(
           width: double.infinity,
           child: FilledButton(
-            onPressed: validateNewPassword(_password.text, _confirm.text) == null ? _submitPassword : null,
+            onPressed:
+                validateNewPassword(_password.text, _confirm.text) == null
+                ? _submitPassword
+                : null,
             child: const Text('Next'),
           ),
         ),
@@ -186,16 +201,29 @@ class _PasswordMatchHint extends StatelessWidget {
     final color = matches ? AppColors.success : AppColors.danger;
     return Row(
       children: [
-        Icon(matches ? Icons.check_circle_rounded : Icons.cancel_rounded, size: 16, color: color),
+        Icon(
+          matches ? Icons.check_circle_rounded : Icons.cancel_rounded,
+          size: 16,
+          color: color,
+        ),
         const SizedBox(width: 6),
-        Text(matches ? 'Passwords match' : 'Passwords do not match', style: TextStyle(color: color, fontSize: 12)),
+        Text(
+          matches ? 'Passwords match' : 'Passwords do not match',
+          style: TextStyle(color: color, fontSize: 12),
+        ),
       ],
     );
   }
 }
 
 class _Card extends StatelessWidget {
-  const _Card({super.key, required this.icon, required this.title, required this.body, required this.child});
+  const _Card({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.body,
+    required this.child,
+  });
 
   final IconData icon;
   final String title;
@@ -212,9 +240,17 @@ class _Card extends StatelessWidget {
           children: [
             Icon(icon, size: 48, color: Theme.of(context).colorScheme.primary),
             const SizedBox(height: 12),
-            Text(title, textAlign: TextAlign.center, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+            ),
             const SizedBox(height: 8),
-            Text(body, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textMuted)),
+            Text(
+              body,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textMuted),
+            ),
             const SizedBox(height: 20),
             child,
           ],

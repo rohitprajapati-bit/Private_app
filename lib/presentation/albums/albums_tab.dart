@@ -15,24 +15,46 @@ class AlbumsTab extends ConsumerWidget {
 
   static Future<void> create(BuildContext context, WidgetRef ref) async {
     final name = await MediaActions.promptName(context, title: 'New album');
-    if (name != null) await ref.read(vaultLibraryProvider.notifier).createAlbum(name);
+    if (name != null)
+      await ref.read(vaultLibraryProvider.notifier).createAlbum(name);
   }
 
-  static Future<void> rename(BuildContext context, WidgetRef ref, Album album) async {
-    final name = await MediaActions.promptName(context, title: 'Rename album', initial: album.name);
-    if (name != null) await ref.read(vaultLibraryProvider.notifier).renameAlbum(album.id, name);
+  static Future<void> rename(
+    BuildContext context,
+    WidgetRef ref,
+    Album album,
+  ) async {
+    final name = await MediaActions.promptName(
+      context,
+      title: 'Rename album',
+      initial: album.name,
+    );
+    if (name != null)
+      await ref.read(vaultLibraryProvider.notifier).renameAlbum(album.id, name);
   }
 
   /// Returns true when deleted.
-  static Future<bool> delete(BuildContext context, WidgetRef ref, Album album) async {
+  static Future<bool> delete(
+    BuildContext context,
+    WidgetRef ref,
+    Album album,
+  ) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Delete “${album.name}”?'),
-        content: const Text('Photos and videos in it are kept and stay under Photos / Videos.'),
+        content: const Text(
+          'Photos and videos in it are kept and stay under Photos / Videos.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete album')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete album'),
+          ),
         ],
       ),
     );
@@ -45,10 +67,14 @@ class AlbumsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final library = ref.watch(vaultLibraryProvider).value;
     final repository = ref.watch(mediaRepositoryProvider);
-    if (library == null) return const Center(child: CircularProgressIndicator());
+    if (library == null)
+      return const Center(child: CircularProgressIndicator());
     if (library.albums.isEmpty) {
       return const Center(
-        child: Text('No albums yet.', style: TextStyle(color: AppColors.textMuted)),
+        child: Text(
+          'No albums yet.',
+          style: TextStyle(color: AppColors.textMuted),
+        ),
       );
     }
     return GridView.builder(
@@ -77,15 +103,33 @@ class AlbumsTab extends ConsumerWidget {
                     child: items.isEmpty
                         ? const ColoredBox(
                             color: AppColors.surface,
-                            child: Icon(Icons.folder_rounded, size: 48, color: AppColors.textMuted),
+                            child: Icon(
+                              Icons.folder_rounded,
+                              size: 48,
+                              color: AppColors.textMuted,
+                            ),
                           )
-                        : EncryptedThumbnail(item: items.first, repository: repository),
+                        : EncryptedThumbnail(
+                            item: items.first,
+                            repository: repository,
+                          ),
                   ),
                 ),
               ),
               const SizedBox(height: 6),
-              Text(album.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
-              Text('${items.length} item${items.length == 1 ? '' : 's'}', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+              Text(
+                album.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              Text(
+                '${items.length} item${items.length == 1 ? '' : 's'}',
+                style: const TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 12,
+                ),
+              ),
             ],
           ),
         );
@@ -107,7 +151,10 @@ class AlbumsTab extends ConsumerWidget {
               onTap: () => Navigator.pop(context, 'rename'),
             ),
             ListTile(
-              leading: const Icon(Icons.delete_rounded, color: AppColors.danger),
+              leading: const Icon(
+                Icons.delete_rounded,
+                color: AppColors.danger,
+              ),
               title: const Text('Delete album'),
               onTap: () => Navigator.pop(context, 'delete'),
             ),
